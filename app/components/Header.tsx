@@ -1,11 +1,19 @@
 import React from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, StatusBar } from 'react-native';
 import { Bell, Search } from 'lucide-react-native';
 
-export default function Header({ keyword, setKeyword }) {
+// ✅ 1. Props 타입 정의 (인터페이스)
+// keyword는 문자열, setKeyword는 상태를 바꾸는 함수라고 명시합니다.
+interface HeaderProps {
+  keyword: string;
+  setKeyword: React.Dispatch<React.SetStateAction<string>>;
+}
+
+// ✅ 2. 타입 적용 (: HeaderProps)
+export default function Header({ keyword, setKeyword }: HeaderProps) {
   return (
     <View style={styles.headerContainer}>
-      {/* 로고 및 알림 아이콘 영역  */}
+      {/* 로고 및 알림 아이콘 영역 */}
       <View style={styles.topRow}>
         <View>
           <Text style={styles.brandSub}>KYONGGI UNIV.</Text>
@@ -20,7 +28,7 @@ export default function Header({ keyword, setKeyword }) {
         </TouchableOpacity>
       </View>
 
-      {/* 검색바 영역  */}
+      {/* 검색바 영역 */}
       <View style={styles.searchContainer}>
         <Search size={18} color="#94a3b8" style={styles.searchIcon} />
         <TextInput
@@ -39,7 +47,8 @@ const styles = StyleSheet.create({
   headerContainer: {
     backgroundColor: '#fff',
     paddingHorizontal: 20,
-    paddingTop: 10,
+    // 🚨 수정: 안드로이드는 상태바 높이만큼 더 내려주고, 아이폰은 기본 여백을 넉넉히 줍니다.
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 20 : 60,
     paddingBottom: 20,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
