@@ -1,0 +1,30 @@
+name: CatchUp Crawler # 액션 이름
+
+on:
+  schedule:
+    - cron: '*/5 * * * *' # 5분마다 실행 (GitHub 최소 간격)
+  workflow_dispatch:      # 수동으로 버튼 눌러서 실행할 수 있게 해줌
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # 우분투(리눅스) 환경에서 실행
+
+    steps:
+      # 1. 내 코드 내려받기
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. 파이썬 설치하기 (3.9 버전)
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      # 3. 필요한 라이브러리 설치 (crawler.py에 쓰인 것들)
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 supabase urllib3
+
+      # 4. 크롤러 실행 (파일 위치가 server 폴더 안이므로 경로 주의)
+      - name: Run crawler
+        run: python server/crawler.py
