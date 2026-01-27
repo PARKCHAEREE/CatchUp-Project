@@ -1,0 +1,7 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "allowJs": true  // <-- "자바스크립트 파일도 허용해줘!" 라는 뜻
+  }
+}

@@ -12,12 +12,15 @@
   "type": "commonjs",
   "dependencies": {
     "@supabase/supabase-js": "^2.90.1",
+    "@types/react": "~19.1.10",
+    "@types/react-native": "^0.72.8",
     "expo": "^54.0.31",
     "lucide-react-native": "^0.562.0",
     "react": "^19.2.3",
     "react-native": "^0.83.1",
     "react-native-calendars": "^1.1313.0",
     "react-native-svg": "15.12.1",
-    "react-native-url-polyfill": "^3.0.0"
+    "react-native-url-polyfill": "^3.0.0",
+    "typescript": "~5.9.2"
   }
 }
