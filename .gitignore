@@ -1,6 +1,17 @@
+# Node / Expo
 node_modules/
 app/node_modules/
 server/node_modules/
 .expo/
-.env
 *.log
+
+# Python virtual environments
+venv/
+venv_caseb/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment variables
+.env

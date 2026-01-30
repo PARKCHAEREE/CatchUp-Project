@@ -4,7 +4,15 @@ import { ScrollView, Text, TouchableOpacity, StyleSheet } from 'react-native';
 // 기획서에 정의된 카테고리 목록 
 const CATEGORIES = ['전체', '학과', '장학', '학사', '취업', '행사', '비교과'];
 
-export default function CategoryFilter({ selectedCategory, onSelectCategory }) {
+// ✅ 1. Props 타입 정의 (인터페이스)
+// 부모 컴포넌트(HomeScreen)가 넘겨주는 데이터의 모양을 정의합니다.
+interface CategoryFilterProps {
+  selectedCategory: string;
+  onSelectCategory: (category: string) => void;
+}
+
+// ✅ 2. 타입 적용 (: CategoryFilterProps)
+export default function CategoryFilter({ selectedCategory, onSelectCategory }: CategoryFilterProps) {
   return (
     <ScrollView 
       horizontal 
@@ -50,7 +58,7 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
   },
   activeFilterBtn: {
-    backgroundColor: '#1f2937', // 기획서의 선택된 탭 검정색 배경 [cite: 54]
+    backgroundColor: '#1f2937', // 기획서의 선택된 탭 검정색 배경
     borderColor: '#1f2937',
   },
   filterText: {
