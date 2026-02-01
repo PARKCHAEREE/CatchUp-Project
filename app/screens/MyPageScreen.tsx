@@ -14,7 +14,7 @@ import {
 import { Settings, Calendar, LogOut, ChevronRight, Plus } from 'lucide-react-native';
 import { supabase } from '../supabase';
 
-// ✅ userInfo를 부모(App.tsx)로부터 받아오도록 타입 정의
+// userInfo를 부모(App.tsx)로부터 받아오도록 타입 정의
 interface MyPageScreenProps {
   userTags: string[];
   setUserTags: React.Dispatch<React.SetStateAction<string[]>>;
@@ -31,7 +31,7 @@ export default function MyPageScreen({ userTags = [], setUserTags, userInfo }: M
   const [isInputVisible, setIsInputVisible] = useState(false);
   const [newTag, setNewTag] = useState("");
 
-  // 🗑️ 로그아웃 함수
+  // 로그아웃 함수
   const handleLogout = () => {
     Alert.alert("로그아웃", "정말 로그아웃 하시겠습니까?", [
       { text: "취소", style: "cancel" },
@@ -43,7 +43,7 @@ export default function MyPageScreen({ userTags = [], setUserTags, userInfo }: M
     ]); 
   };
 
-  // ➕ 태그 추가 함수
+  //  태그 추가 함수
   const handleAddTag = () => {
     if (newTag.trim()) {
       if (!userTags.includes(newTag.trim())) {
@@ -58,7 +58,7 @@ export default function MyPageScreen({ userTags = [], setUserTags, userInfo }: M
     }
   };
 
-  // ➖ [NEW] 태그 삭제 함수 (수정 기능)
+  // 태그 삭제 함수 (수정 기능)
   const handleRemoveTag = (tagToRemove: string) => {
     Alert.alert("태그 삭제", `'${tagToRemove}' 태그를 삭제하시겠습니까?`, [
       { text: "취소", style: "cancel" },
@@ -70,14 +70,14 @@ export default function MyPageScreen({ userTags = [], setUserTags, userInfo }: M
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         
-        {/* 1. 프로필 카드 */}
+        {/* 프로필 카드 */}
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
             <Text style={styles.avatarEmoji}>👨‍🎓</Text>
           </View>
           <View style={styles.profileInfo}>
             <View style={styles.nameRow}>
-              {/* ✅ 받아온 userInfo 정보 사용 */}
+              {/* 받아온 userInfo 정보 사용 */}
               <Text style={styles.userName}>{userInfo.name}</Text>
               <Text style={styles.userSuffix}>님</Text>
             </View>
@@ -86,7 +86,7 @@ export default function MyPageScreen({ userTags = [], setUserTags, userInfo }: M
           </View>
         </View>
 
-        {/* 2. 맞춤 설정 (태그 추가/삭제) */}
+        {/* 맞춤 설정 (태그 추가/삭제) */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <Settings size={18} color="#1e293b" />
@@ -129,7 +129,7 @@ export default function MyPageScreen({ userTags = [], setUserTags, userInfo }: M
           </View>
         </View>
 
-        {/* 3. 메뉴 리스트 */}
+        {/* 메뉴 리스트 */}
         <TouchableOpacity style={styles.menuItem}>
           <View style={styles.menuLeft}>
             <View style={[styles.menuIconBox, { backgroundColor: '#EEF2FF' }]}>
@@ -140,7 +140,7 @@ export default function MyPageScreen({ userTags = [], setUserTags, userInfo }: M
           <ChevronRight size={18} color="#cbd5e1" />
         </TouchableOpacity>
 
-        {/* 4. 로그아웃 버튼 */}
+        {/* 로그아웃 버튼 */}
         <TouchableOpacity style={[styles.menuItem, styles.logoutItem]} onPress={handleLogout}>
           <View style={styles.menuLeft}>
             <LogOut size={20} color="#ef4444" />

@@ -6,7 +6,7 @@ import {
 import { supabase } from '../supabase';
 import { ChevronDown, Check } from 'lucide-react-native';
 
-// ✅ 경기대학교 전체 학과/전공 리스트 (복구 완료!)
+// 경기대학교 전체 학과/전공 리스트 
 const MAJORS = [
   // [자유교양대학]
   '교직학부', '자유전공학부(수원)',
@@ -58,7 +58,7 @@ export default function AuthScreen() {
   const [name, setName] = useState('');
   const [selectedMajor, setSelectedMajor] = useState('');
   
-  // ✅ OTP(인증번호) 관련 상태
+  // OTP(인증번호) 관련 상태
   const [otp, setOtp] = useState('');
   const [isOtpVisible, setIsOtpVisible] = useState(false); // 인증번호 입력창 보이기 여부
 
@@ -66,7 +66,7 @@ export default function AuthScreen() {
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  // 1. 로그인 처리
+  // 로그인 처리
   const handleLogin = async () => {
     if (!email || !password) return Alert.alert("알림", "이메일과 비밀번호를 입력해주세요.");
     
@@ -88,7 +88,7 @@ export default function AuthScreen() {
     setLoading(false);
   };
 
-  // 2. 회원가입 요청 (OTP 전송)
+  // 회원가입 요청 (OTP 전송)
   const handleSignUp = async () => {
     if (!email || !password || !name || !selectedMajor) {
       return Alert.alert("알림", "모든 정보를 입력해주세요.");
@@ -112,14 +112,14 @@ export default function AuthScreen() {
     if (error) {
       Alert.alert("회원가입 실패", error.message);
     } else {
-      // ✅ 성공하면 인증번호 입력창 띄움
+      // 성공하면 인증번호 입력창 띄움
       setIsOtpVisible(true);
       Alert.alert("인증번호 발송 📩", "메일함(스팸함)을 확인하여 6자리 인증번호를 입력해주세요.");
     }
     setLoading(false);
   };
 
-  // 3. ✅ 인증번호 확인 함수
+  // 인증번호 확인 함수
   const handleVerifyOtp = async () => {
     if (!otp) return Alert.alert("알림", "인증번호를 입력해주세요.");
 
@@ -190,7 +190,7 @@ export default function AuthScreen() {
           </>
         )}
 
-        {/* ✅ 인증번호 입력칸 (OTP 모드일 때만 등장) */}
+        {/* 인증번호 입력칸 (OTP 모드일 때만 등장) */}
         {isOtpVisible && (
           <View style={styles.otpContainer}>
              <Text style={styles.otpLabel}>메일로 전송된 6자리 숫자를 입력하세요</Text>

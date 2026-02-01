@@ -48,7 +48,7 @@ export default function HomeScreen({ userTags = [], searchKeyword = "", userInfo
       const { data, error } = await supabase
         .from('notices')
         .select('*')
-        // ✅ [A. 수정] 정렬 기준을 created_at -> posted_at (공지 작성일)으로 변경
+        // 정렬 기준을 created_at -> posted_at (공지 작성일)으로 변경
         .order('posted_at', { ascending: false }); 
 
       if (error) throw error;
@@ -131,7 +131,7 @@ export default function HomeScreen({ userTags = [], searchKeyword = "", userInfo
     return diffDays <= 7;
   };
 
-  // ✅ [B. 수정] 최신글 판별 시 posted_at 사용 (없으면 created_at 백업)
+  // 최신글 판별 시 posted_at 사용 (없으면 created_at 백업)
   const recentNotices = notices.filter(n => isRecent(n.posted_at || n.created_at));
 
   const majorPicks = notices.filter(n => {

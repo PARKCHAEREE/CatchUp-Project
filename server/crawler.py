@@ -47,7 +47,7 @@ def parse_date_to_iso(date_text: str) -> Optional[str]:
             pass
     return None
 
-# ✅ [수정됨] 링크 정규화 함수: 원본의 bbsNo와 key를 살려서 WAF 차단 방지
+#  링크 정규화 함수: 원본의 bbsNo와 key를 살려서 WAF 차단 방지
 def get_clean_link(raw_link: str) -> str:
     # 1. nttNo(게시물 번호) 추출
     ntt_match = re.search(r'nttNo=(\d+)', raw_link)
@@ -121,7 +121,7 @@ def crawl_kyonggi_univ(page_from: int = 1, page_to: int = 5):
                 href = (a.get("href") or "").strip()
                 if not href: continue
 
-                # ✅ 링크 정규화 (bbsNo 자동 감지)
+                #  링크 정규화 (bbsNo 자동 감지)
                 link = get_clean_link(href)
                 
                 # 본문 수집

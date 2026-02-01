@@ -1,7 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-
-// ✅ 1. cleanTitle 함수 정의 (잘 넣어주셨습니다!)
 const cleanTitle = (text: string) => {
   if (!text) return "";
   return text.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').trim();
@@ -28,8 +26,6 @@ export default function MajorPickCard({ title, dday, category, urgent, isIndigo,
       <Text style={[styles.category, isIndigo && styles.indigoText]}>
         {category || '공지'}
       </Text>
-      
-      {/* ✅ 2. 여기가 수정할 위치입니다! {title} -> {cleanTitle(title)} */}
       <Text style={[styles.title, isIndigo && styles.whiteText]} numberOfLines={2}>
         {cleanTitle(title)}
       </Text>

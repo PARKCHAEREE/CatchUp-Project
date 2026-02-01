@@ -15,7 +15,7 @@ import Header from './components/Header';
 
 type TabType = 'home' | 'calendar' | 'scrap' | 'mypage';
 
-// ✅ 유저 정보 타입 정의
+// 유저 정보 타입 정의
 export interface UserInfo {
   name: string;
   major: string;
@@ -29,7 +29,7 @@ export default function App() {
   const [userTags, setUserTags] = useState<string[]>(['장학금', '개발']);
   const [searchKeyword, setSearchKeyword] = useState<string>('');
 
-  // ✅ 유저 정보를 담을 상태 추가
+  // 유저 정보를 담을 상태 추가
   const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', major: '', grade: 0 });
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // ✅ [핵심] 세션에서 유저 정보(이름, 학과) 추출하는 함수
+  // 세션에서 유저 정보(이름, 학과) 추출하는 함수
   const extractUserInfo = (session: Session) => {
     if (session?.user?.user_metadata) {
       const { full_name, major } = session.user.user_metadata;
@@ -64,7 +64,7 @@ export default function App() {
     }
   };
 
-  // 🚨 로그인이 안 되어 있으면 'AuthScreen'을 보여줌
+  // 로그인이 안 되어 있으면 'AuthScreen'을 보여줌
   if (!session) {
     return <AuthScreen />;
   }
@@ -85,7 +85,7 @@ export default function App() {
           <HomeScreen 
             userTags={userTags} 
             searchKeyword={searchKeyword} 
-            userInfo={userInfo} // ✅ 홈 화면에 정보 전달
+            userInfo={userInfo} //  홈 화면에 정보 전달
           />
         )}
         {activeTab === 'calendar' && <CalendarScreen />}
@@ -94,7 +94,7 @@ export default function App() {
           <MyPageScreen 
             userTags={userTags} 
             setUserTags={setUserTags} 
-            userInfo={userInfo} // ✅ 마이페이지에 정보 전달
+            userInfo={userInfo} //  마이페이지에 정보 전달
           />
         )}
       </View>

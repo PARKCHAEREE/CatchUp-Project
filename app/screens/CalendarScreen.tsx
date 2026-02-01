@@ -12,10 +12,6 @@ LocaleConfig.locales['kr'] = {
 };
 LocaleConfig.defaultLocale = 'kr';
 
-// 🚨 [중요] 아직 로그인 기능이 없다면 임시로 고정된 ID를 씁니다.
-// 나중에 로그인 기능 넣으면 supabase.auth.user().id 로 바꾸면 됩니다.
-const TEST_USER_ID = "test-user-001"; 
-
 interface Notice {
   id: number;
   title: string;
@@ -44,13 +40,21 @@ export default function CalendarScreen() {
     fetchBookmarkedNotices();
   }, []);
 
-  // ✅ 정석 방법: DB의 'bookmarks' 테이블을 조회해서 찜한 공지 데이터만 가져옵니다.
+  // DB의 'bookmarks' 테이블을 조회해서 찜한 공지 데이터만 가져옵니다.
   const fetchBookmarkedNotices = async () => {
     try {
       setLoading(true);
 
-      // 1. bookmarks 테이블에서 내 ID로 된 것들을 찾고, 
-      // 2. 그 안에 연결된 notices(공지 정보)를 같이 가져옵니다 (Join).
+      // 1. 현재 로그인된 유저 ID 가져오기
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        // 로그인 정보가 없을 경우 처리 (필요시 알림 등)
+        throw new Error("로그인 정보가 없습니다.");
+      }
+
+      // 2. bookmarks 테이블에서 내 ID로 된 것들을 찾고, 
+      // 3. 그 안에 연결된 notices(공지 정보)를 같이 가져옵니다 (Join).
       const { data, error } = await supabase
         .from('bookmarks')
         .select(`
@@ -59,23 +63,22 @@ export default function CalendarScreen() {
             id, title, deadline, category, source
           )
         `)
-        .eq('user_id', TEST_USER_ID); // 내 것만 가져오기
+        .eq('user_id', user.id); 
 
       if (error) throw error;
 
-      // 3. 데이터 가공 (Supabase가 계층 구조로 주기 때문에 평탄화 작업 필요)
-      // data = [{ notices: { title: "...", ... } }, ...] 형태임
+      // 4. 데이터 가공 (Supabase가 계층 구조로 주기 때문에 평탄화 작업 필요)
       const myNotices = data
         .map((item: any) => item.notices) // 공지 알맹이만 꺼냄
         .filter((n: any) => n && n.deadline); // 삭제된 공지나 마감일 없는 건 제외
 
-      // 4. 캘린더 점 찍기
+      // 5. 캘린더 점 찍기
       const marks: MarkedDates = {};
       myNotices.forEach((notice: Notice) => {
         const date = notice.deadline.split('T')[0];
         marks[date] = { 
           marked: true, 
-          dotColor: '#FFD700', // 찜한 건 금색 점으로 표시!
+          dotColor: '#FFD700', // 찜한 건 금색 점으로 표시
         };
       });
 
@@ -84,7 +87,10 @@ export default function CalendarScreen() {
 
     } catch (e: any) {
       console.error(e);
-      Alert.alert("일정 로드 실패", e.message);
+      // 로그인 안 된 상태면 조용히 리턴하거나 에러 표시
+      if (e.message !== "로그인 정보가 없습니다.") {
+        Alert.alert("일정 로드 실패", e.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -100,11 +106,18 @@ export default function CalendarScreen() {
   // 캘린더 화면에서 별표를 다시 누르면 -> 찜 해제(삭제) 기능
   const handleRemoveBookmark = async (noticeId: number) => {
     try {
+      // 현재 유저 ID 확인
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        Alert.alert("오류", "로그인이 필요합니다.");
+        return;
+      }
+
       // DB에서 삭제
       const { error } = await supabase
         .from('bookmarks')
         .delete()
-        .eq('user_id', TEST_USER_ID)
+        .eq('user_id', user.id) 
         .eq('notice_id', noticeId);
 
       if (error) throw error;
@@ -116,8 +129,6 @@ export default function CalendarScreen() {
       // 선택된 날짜 리스트에서도 제거
       setSelectedDateNotices(selectedDateNotices.filter(n => n.id !== noticeId));
       
-      // 마커(점) 다시 계산 (그 날짜에 남은 일정이 없으면 점 제거)
-      // (간단하게 구현하기 위해 전체 새로고침도 방법이지만, 여기선 생략)
       Alert.alert("알림", "일정이 캘린더에서 제거되었습니다.");
 
     } catch (e: any) {

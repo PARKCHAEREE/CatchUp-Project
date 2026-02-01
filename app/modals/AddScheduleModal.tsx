@@ -8,13 +8,13 @@ import * as ImagePicker from 'expo-image-picker';
 // @ts-ignore: supabase.js가 js파일이라 타입 추론이 안 될 경우를 대비해 ignore 처리하거나 supabase.ts로 변환 권장
 import { supabase } from '../supabase'; 
 
-// 1. Props 타입 정의
+// Props 타입 정의
 interface AddScheduleModalProps {
   visible: boolean;
   onClose: () => void;
 }
 
-// 2. 소스 타입 정의 (오타 방지)
+// 소스 타입 정의 (오타 방지)
 type SourceType = 'kakao' | 'poster' | 'note';
 
 // 서버 URL (본인 IP로 변경 필요)
@@ -47,14 +47,13 @@ export default function AddScheduleModal({ visible, onClose }: AddScheduleModalP
 
 // 수정된 handleAISubmit 함수
   const handleAISubmit = async () => {
-    // 1. 카카오톡 케이스 처리 (여기서 return 되면 아래 코드는 실행 안 됨)
+    // 카카오톡 케이스 처리 (여기서 return 되면 아래 코드는 실행 안 됨)
     if (sourceType === 'kakao') {
        Alert.alert("알림", "카카오톡 분석 기능은 아직 백엔드에 구현되지 않았습니다.");
        return;
     }
     
-    // 2. [수정됨] 위에서 'kakao'가 걸러졌으므로, 여기는 무조건 'poster'나 'note'입니다.
-    // 따라서 'sourceType !== kakao' 검사를 굳이 할 필요가 없습니다.
+    // 위에서 'kakao'가 걸러졌으므로, 여기는 무조건 'poster'나 'note'입니다.
     if (!selectedImage) {
       return Alert.alert("이미지 없음", "분석할 이미지를 업로드해주세요."); 
     }
