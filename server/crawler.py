@@ -47,16 +47,26 @@ def parse_date_to_iso(date_text: str) -> Optional[str]:
             pass
     return None
 
-# ✅ [NEW] 링크 정규화 함수: 링크 뒤에 붙은 잡다한 파라미터를 떼고 고유 번호만 남깁니다.
+# ✅ [수정됨] 링크 정규화 함수: 원본의 bbsNo와 key를 살려서 WAF 차단 방지
 def get_clean_link(raw_link: str) -> str:
     # 1. nttNo(게시물 번호) 추출
-    match = re.search(r'nttNo=(\d+)', raw_link)
-    if match:
-        ntt_no = match.group(1)
-        # 2. 항상 똑같은 표준 링크 포맷으로 재조립
-        return f"{BASE}/www/selectBbsNttView.do?key=7520&bbsNo=1073&nttNo={ntt_no}"
+    ntt_match = re.search(r'nttNo=(\d+)', raw_link)
     
-    # nttNo가 없는 특수 링크라면 원래대로 저장
+    if ntt_match:
+        ntt_no = ntt_match.group(1)
+        
+        # 2. bbsNo(게시판 번호) 추출 (없으면 기본값 1073)
+        bbs_match = re.search(r'bbsNo=(\d+)', raw_link)
+        bbs_no = bbs_match.group(1) if bbs_match else "1073"
+        
+        # 3. key 추출 (없으면 기본값 7520)
+        key_match = re.search(r'key=(\d+)', raw_link)
+        key = key_match.group(1) if key_match else "7520"
+
+        # 4. 올바른 파라미터 조합으로 재조립
+        return f"{BASE}/www/selectBbsNttView.do?key={key}&bbsNo={bbs_no}&nttNo={ntt_no}"
+    
+    # nttNo가 없는 특수 링크라면 원래대로
     return (BASE + raw_link) if raw_link.startswith("/") else raw_link
 
 def get_category(raw_category: str, title: str) -> str:
@@ -75,7 +85,7 @@ def get_category(raw_category: str, title: str) -> str:
     return mapped if mapped else "일반"
 
 def crawl_kyonggi_univ(page_from: int = 1, page_to: int = 5):
-    print("경기대학교 공지사항 수집 시작 (중복 방지 강화판)...")
+    print("경기대학교 공지사항 수집 시작 (WAF 우회 패치)...")
     
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -111,13 +121,12 @@ def crawl_kyonggi_univ(page_from: int = 1, page_to: int = 5):
                 href = (a.get("href") or "").strip()
                 if not href: continue
 
-                # ✅ [핵심 변경] 링크를 정규화해서 저장 (중복 원천 차단)
+                # ✅ 링크 정규화 (bbsNo 자동 감지)
                 link = get_clean_link(href)
                 
                 # 본문 수집
                 content_text = f"원문 링크: {link}"
                 try:
-                    # 상세 페이지 접속 시에도 정규화된 링크 사용
                     detail_res = requests.get(link, headers=headers, timeout=5, verify=False)
                     if detail_res.status_code == 200:
                         detail_soup = BeautifulSoup(detail_res.text, "html.parser")
@@ -136,7 +145,7 @@ def crawl_kyonggi_univ(page_from: int = 1, page_to: int = 5):
                 data = {
                     "title": title,
                     "category": category,
-                    "link": link, # 이제 항상 똑같은 모양의 링크가 들어감
+                    "link": link,
                     "content": content_text,
                     "summary": "AI 요약 대기 중",
                     "status": "pending",
@@ -147,7 +156,7 @@ def crawl_kyonggi_univ(page_from: int = 1, page_to: int = 5):
                     "raw_category": raw_category,
                 }
 
-                # 링크(link)가 같으면 업데이트, 없으면 추가
+                # 중복 방지 (link 기준)
                 supabase.table("notices").upsert(data, on_conflict="link").execute()
                 total_count += 1
                 print(".", end="")
