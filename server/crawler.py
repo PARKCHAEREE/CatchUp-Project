@@ -23,7 +23,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 BASE = "https://www.kyonggi.ac.kr"
 
-# 보조 매핑 (키워드가 없을 때 사용)
+# 보조 매핑
 CATEGORY_MAP = {
     "수강에서 성적까지": "학사",
     "학사": "학사",
@@ -47,62 +47,43 @@ def parse_date_to_iso(date_text: str) -> Optional[str]:
             pass
     return None
 
+# ✅ [NEW] 링크 정규화 함수: 링크 뒤에 붙은 잡다한 파라미터를 떼고 고유 번호만 남깁니다.
+def get_clean_link(raw_link: str) -> str:
+    # 1. nttNo(게시물 번호) 추출
+    match = re.search(r'nttNo=(\d+)', raw_link)
+    if match:
+        ntt_no = match.group(1)
+        # 2. 항상 똑같은 표준 링크 포맷으로 재조립
+        return f"{BASE}/www/selectBbsNttView.do?key=7520&bbsNo=1073&nttNo={ntt_no}"
+    
+    # nttNo가 없는 특수 링크라면 원래대로 저장
+    return (BASE + raw_link) if raw_link.startswith("/") else raw_link
+
 def get_category(raw_category: str, title: str) -> str:
-    """
-    [제목 우선 분류 전략]
-    1. 제목+카테고리 텍스트에서 핵심 키워드를 찾습니다.
-    2. 키워드 우선순위: 장학 > 등록 > 취업 > 생활(NEW!) > 행사 > 학사
-    3. 키워드가 없으면 학교 카테고리(CATEGORY_MAP)를 따릅니다.
-    """
     clean_title = normalize_text(title)
     clean_raw = normalize_text(raw_category)
-    
     text = f"{clean_title} {clean_raw}"
     
-    # 1. [장학] 돈 받는 것
-    if re.search(r"장학금|장학|국가|근로|학자금|대출|생활비", text):
-        return "장학"
-        
-    # 2. [등록] 돈 내는 것
-    if re.search(r"등록금|분납|납부|환불|고지서|등록\b", text):
-        return "등록"
-        
-    # 3. [취업] 일자리, 진로
-    if re.search(r"취업|채용|인턴|현장실습|진로|멘토링|추천채용|사업단", text):
-        return "취업"
-        
-    # ✅ 4. [생활] 기숙사, 교통, 식당, 복지 (새로 추가됨!)
-    if re.search(r"기숙사|생활관|드림타워|입사|퇴사|관생|셔틀|버스|주차|식당|메뉴|학식|보건|진료|분실물|예비군", text):
-        return "생활"
+    if re.search(r"장학금|장학|국가|근로|학자금|대출|생활비", text): return "장학"
+    if re.search(r"등록금|분납|납부|환불|고지서|등록\b", text): return "등록"
+    if re.search(r"취업|채용|인턴|현장실습|진로|멘토링|추천채용|사업단", text): return "취업"
+    if re.search(r"기숙사|생활관|드림타워|입사|퇴사|관생|셔틀|버스|주차|식당|메뉴|학식|보건|진료|분실물|예비군", text): return "생활"
+    if re.search(r"행사|특강|모집|대회|공모전|봉사|서포터즈|프로그램|설명회|축제", text): return "행사"
+    if re.search(r"수강|성적|졸업|휴학|복학|전과|계절학기|학사일정", text): return "학사"
 
-    # 5. [행사] 참여, 모집 (기숙사 키워드는 위로 빠졌으므로 제거)
-    if re.search(r"행사|특강|모집|대회|공모전|봉사|서포터즈|프로그램|설명회|축제", text):
-        return "행사"
-        
-    # 6. [학사] 수업, 성적, 졸업
-    if re.search(r"수강|성적|졸업|휴학|복학|전과|계절학기|학사일정", text):
-        return "학사"
-
-    # 7. 학교 분류 따름
     mapped = CATEGORY_MAP.get(clean_raw)
-    if mapped:
-        return mapped
-        
-    # 8. 분류 불가
-    return "기타"
+    return mapped if mapped else "기타"
 
 def crawl_kyonggi_univ(page_from: int = 1, page_to: int = 5):
-    print("경기대학교 공지사항 수집 시작...")
+    print("경기대학교 공지사항 수집 시작 (중복 방지 강화판)...")
     
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Referer": "https://www.kyonggi.ac.kr/",
     }
 
-    # 통합공지사항 (1073)
     bbs_no = 1073
     key = 7520
-
     total_count = 0
     
     for page_num in range(page_from, page_to + 1):
@@ -113,32 +94,30 @@ def crawl_kyonggi_univ(page_from: int = 1, page_to: int = 5):
             res = requests.get(target_url, headers=headers, timeout=15, verify=False)
             res.raise_for_status()
             soup = BeautifulSoup(res.text, "html.parser")
-
             rows = soup.select("table tbody tr")
+
             if not rows:
                 print("게시물 없음", end="")
                 continue
 
             for row in rows:
                 tds = row.find_all("td")
-                if len(tds) < 3:
-                    continue
+                if len(tds) < 3: continue
 
-                # 제목 및 링크 추출
                 a = tds[2].find("a")
-                if not a:
-                    continue
+                if not a: continue
 
                 title = normalize_text(a.get_text())
                 href = (a.get("href") or "").strip()
-                if not href:
-                    continue
+                if not href: continue
 
-                link = (BASE + href) if href.startswith("/") else href
+                # ✅ [핵심 변경] 링크를 정규화해서 저장 (중복 원천 차단)
+                link = get_clean_link(href)
                 
-                # --- 본문 수집 ---
+                # 본문 수집
                 content_text = f"원문 링크: {link}"
                 try:
+                    # 상세 페이지 접속 시에도 정규화된 링크 사용
                     detail_res = requests.get(link, headers=headers, timeout=5, verify=False)
                     if detail_res.status_code == 200:
                         detail_soup = BeautifulSoup(detail_res.text, "html.parser")
@@ -147,19 +126,17 @@ def crawl_kyonggi_univ(page_from: int = 1, page_to: int = 5):
                             content_text = view_content.get_text(strip=True)
                 except Exception:
                     pass 
-                # ------------------
 
-                # 날짜 및 카테고리 처리
+                # 날짜 및 카테고리
                 raw_category = normalize_text(tds[1].get_text()) if len(tds) > 1 else ""
                 date_text = normalize_text(tds[-1].get_text())
-                
                 posted_at = parse_date_to_iso(date_text)
                 category = get_category(raw_category, title)
 
                 data = {
                     "title": title,
                     "category": category,
-                    "link": link,
+                    "link": link, # 이제 항상 똑같은 모양의 링크가 들어감
                     "content": content_text,
                     "summary": "AI 요약 대기 중",
                     "status": "pending",
@@ -170,6 +147,7 @@ def crawl_kyonggi_univ(page_from: int = 1, page_to: int = 5):
                     "raw_category": raw_category,
                 }
 
+                # 링크(link)가 같으면 업데이트, 없으면 추가
                 supabase.table("notices").upsert(data, on_conflict="link").execute()
                 total_count += 1
                 print(".", end="")
