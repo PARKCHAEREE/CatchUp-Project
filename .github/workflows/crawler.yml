@@ -1,0 +1,32 @@
+name: CatchUp Notice Crawler
+
+on:
+  schedule:
+    # 30분마다 실행 (학교 서버 부하 방지 및 효율성 고려)
+    - cron: '*/30 * * * *'
+  workflow_dispatch: # 수동 실행 버튼
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: 파이썬 3.9 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: 라이브러리 설치
+        run: |
+          pip install requests beautifulsoup4 supabase urllib3
+
+      - name: 크롤러 실행
+        env:
+          # [중요] 깃허브 Secrets에 등록된 키를 파이썬으로 전달
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          python server/crawler.py
