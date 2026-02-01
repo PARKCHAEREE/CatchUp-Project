@@ -72,7 +72,7 @@ def get_category(raw_category: str, title: str) -> str:
     if re.search(r"수강|성적|졸업|휴학|복학|전과|계절학기|학사일정", text): return "학사"
 
     mapped = CATEGORY_MAP.get(clean_raw)
-    return mapped if mapped else "기타"
+    return mapped if mapped else "일반"
 
 def crawl_kyonggi_univ(page_from: int = 1, page_to: int = 5):
     print("경기대학교 공지사항 수집 시작 (중복 방지 강화판)...")
