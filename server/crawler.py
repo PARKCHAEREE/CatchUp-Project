@@ -51,16 +51,15 @@ def get_category(raw_category: str, title: str) -> str:
     """
     [제목 우선 분류 전략]
     1. 제목+카테고리 텍스트에서 핵심 키워드를 찾습니다.
-    2. 키워드 우선순위: 장학 > 등록 > 취업 > 행사 > 학사
+    2. 키워드 우선순위: 장학 > 등록 > 취업 > 생활(NEW!) > 행사 > 학사
     3. 키워드가 없으면 학교 카테고리(CATEGORY_MAP)를 따릅니다.
     """
     clean_title = normalize_text(title)
     clean_raw = normalize_text(raw_category)
     
-    # 검색용 텍스트
     text = f"{clean_title} {clean_raw}"
     
-    # 1. [장학] 돈 받는 것 (장학금 키워드 추가됨)
+    # 1. [장학] 돈 받는 것
     if re.search(r"장학금|장학|국가|근로|학자금|대출|생활비", text):
         return "장학"
         
@@ -72,20 +71,24 @@ def get_category(raw_category: str, title: str) -> str:
     if re.search(r"취업|채용|인턴|현장실습|진로|멘토링|추천채용|사업단", text):
         return "취업"
         
-    # 4. [행사] 참여, 모집
-    if re.search(r"행사|특강|모집|대회|공모전|봉사|서포터즈|프로그램|설명회", text):
+    # ✅ 4. [생활] 기숙사, 교통, 식당, 복지 (새로 추가됨!)
+    if re.search(r"기숙사|생활관|드림타워|입사|퇴사|관생|셔틀|버스|주차|식당|메뉴|학식|보건|진료|분실물|예비군", text):
+        return "생활"
+
+    # 5. [행사] 참여, 모집 (기숙사 키워드는 위로 빠졌으므로 제거)
+    if re.search(r"행사|특강|모집|대회|공모전|봉사|서포터즈|프로그램|설명회|축제", text):
         return "행사"
         
-    # 5. [학사] 수업, 성적, 졸업
+    # 6. [학사] 수업, 성적, 졸업
     if re.search(r"수강|성적|졸업|휴학|복학|전과|계절학기|학사일정", text):
         return "학사"
 
-    # 6. 키워드가 없으면 학교 분류를 따름
+    # 7. 학교 분류 따름
     mapped = CATEGORY_MAP.get(clean_raw)
     if mapped:
         return mapped
         
-    # 7. 분류 불가
+    # 8. 분류 불가
     return "기타"
 
 def crawl_kyonggi_univ(page_from: int = 1, page_to: int = 5):
