@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
@@ -8,60 +8,44 @@ import {
   Alert, 
   SafeAreaView,
   TextInput,
-  Platform, // 안드로이드 체크용
-  StatusBar // 상단 상태바 높이 확인용
+  Platform, 
+  StatusBar 
 } from 'react-native';
 import { Settings, Calendar, LogOut, ChevronRight, Plus } from 'lucide-react-native';
-import { supabase } from '../supabase'; // 로그아웃 및 정보 조회를 위해 필요
+import { supabase } from '../supabase';
 
-// Props 타입 정의
+// userInfo를 부모(App.tsx)로부터 받아오도록 타입 정의
 interface MyPageScreenProps {
   userTags: string[];
   setUserTags: React.Dispatch<React.SetStateAction<string[]>>;
+  userInfo: {
+    name: string;
+    major: string;
+    grade: number;
+  };
 }
 
-export default function MyPageScreen({ userTags = ['장학금', '개발'], setUserTags }: MyPageScreenProps) {
+export default function MyPageScreen({ userTags = [], setUserTags, userInfo }: MyPageScreenProps) {
   
   // 태그 입력 관련 상태
   const [isInputVisible, setIsInputVisible] = useState(false);
   const [newTag, setNewTag] = useState("");
 
-  // 유저 정보 상태 (로그인 정보 받아오기)
-  const [userInfo, setUserInfo] = useState({ name: '김경기', major: '학부생' });
-
-  // ✅ 화면 켜질 때 내 정보 가져오기
-  useEffect(() => {
-    const fetchUserInfo = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user && user.user_metadata) {
-        setUserInfo({
-          name: user.user_metadata.full_name || '김경기',
-          major: user.user_metadata.major || '전공 미선택'
-        });
-      }
-    };
-    fetchUserInfo();
-  }, []);
-
-  // ✅ 실제 로그아웃 기능 구현
+  // 로그아웃 함수
   const handleLogout = () => {
     Alert.alert("로그아웃", "정말 로그아웃 하시겠습니까?", [
       { text: "취소", style: "cancel" },
       { 
         text: "로그아웃", 
         style: 'destructive',
-        onPress: async () => {
-          await supabase.auth.signOut();
-          // App.tsx에서 상태 변화를 감지하여 자동으로 로그인 화면으로 이동합니다.
-        }
+        onPress: async () => await supabase.auth.signOut()
       }
     ]); 
   };
 
-  // ✅ 태그 추가 로직
+  //  태그 추가 함수
   const handleAddTag = () => {
     if (newTag.trim()) {
-      // 중복 방지
       if (!userTags.includes(newTag.trim())) {
         setUserTags([...userTags, newTag.trim()]);
       } else {
@@ -74,37 +58,51 @@ export default function MyPageScreen({ userTags = ['장학금', '개발'], setUs
     }
   };
 
+  // 태그 삭제 함수 (수정 기능)
+  const handleRemoveTag = (tagToRemove: string) => {
+    Alert.alert("태그 삭제", `'${tagToRemove}' 태그를 삭제하시겠습니까?`, [
+      { text: "취소", style: "cancel" },
+      { text: "삭제", onPress: () => setUserTags(userTags.filter(t => t !== tagToRemove)) }
+    ]);
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         
-        {/* 1. 프로필 카드 */}
+        {/* 프로필 카드 */}
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
             <Text style={styles.avatarEmoji}>👨‍🎓</Text>
           </View>
           <View style={styles.profileInfo}>
             <View style={styles.nameRow}>
+              {/* 받아온 userInfo 정보 사용 */}
               <Text style={styles.userName}>{userInfo.name}</Text>
               <Text style={styles.userSuffix}>님</Text>
             </View>
-            <Text style={styles.userSub}>{userInfo.major}</Text>
+            {/* 학년 정보가 있으면 표시 */}
+            <Text style={styles.userSub}>{userInfo.major} {userInfo.grade ? `${userInfo.grade}학년` : ''}</Text>
           </View>
         </View>
 
-        {/* 2. 맞춤 설정 (태그 추가 기능) */}
+        {/* 맞춤 설정 (태그 추가/삭제) */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <Settings size={18} color="#1e293b" />
-            <Text style={styles.sectionTitle}>맞춤 설정</Text>
+            <Text style={styles.sectionTitle}>관심 키워드 (클릭하여 삭제)</Text>
           </View>
           
           <View style={styles.tagContainer}>
-            {/* 기존 태그 리스트 */}
+            {/* 기존 태그 리스트 (클릭 시 삭제) */}
             {userTags.map((tag, index) => (
-              <View key={index} style={styles.tag}>
+              <TouchableOpacity 
+                key={index} 
+                style={styles.tag} 
+                onPress={() => handleRemoveTag(tag)}
+              >
                 <Text style={styles.tagText}>#{tag}</Text>
-              </View>
+              </TouchableOpacity>
             ))}
 
             {/* 태그 추가 버튼 or 입력창 */}
@@ -113,12 +111,12 @@ export default function MyPageScreen({ userTags = ['장학금', '개발'], setUs
                 <TextInput 
                   value={newTag}
                   onChangeText={setNewTag}
-                  onSubmitEditing={handleAddTag} // 엔터 누르면 추가
-                  onBlur={() => { if(!newTag) setIsInputVisible(false); }} // 포커스 잃으면 닫기
+                  onSubmitEditing={handleAddTag}
+                  onBlur={() => { if(!newTag) setIsInputVisible(false); }}
                   placeholder="태그 입력"
                   placeholderTextColor="#94a3b8"
                   style={{ fontSize: 12, width: 80, padding: 0, color: '#1e293b' }}
-                  autoFocus // 켜지자마자 키보드 올라옴
+                  autoFocus
                   returnKeyType="done"
                 />
               </View>
@@ -131,7 +129,7 @@ export default function MyPageScreen({ userTags = ['장학금', '개발'], setUs
           </View>
         </View>
 
-        {/* 3. 메뉴 리스트 */}
+        {/* 메뉴 리스트 */}
         <TouchableOpacity style={styles.menuItem}>
           <View style={styles.menuLeft}>
             <View style={[styles.menuIconBox, { backgroundColor: '#EEF2FF' }]}>
@@ -142,7 +140,7 @@ export default function MyPageScreen({ userTags = ['장학금', '개발'], setUs
           <ChevronRight size={18} color="#cbd5e1" />
         </TouchableOpacity>
 
-        {/* 4. 로그아웃 버튼 */}
+        {/* 로그아웃 버튼 */}
         <TouchableOpacity style={[styles.menuItem, styles.logoutItem]} onPress={handleLogout}>
           <View style={styles.menuLeft}>
             <LogOut size={20} color="#ef4444" />
@@ -157,7 +155,6 @@ export default function MyPageScreen({ userTags = ['장학금', '개발'], setUs
 }
 
 const styles = StyleSheet.create({
-  // ✅ Android 상태바 겹침 해결을 위한 paddingTop 설정
   container: { 
     flex: 1, 
     padding: 20,

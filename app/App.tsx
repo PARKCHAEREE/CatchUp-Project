@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, SafeAreaView, TouchableOpacity, Text, StatusBar, Alert } from 'react-native';
+import { View, StyleSheet, SafeAreaView, TouchableOpacity, Text, StatusBar } from 'react-native';
 import { GraduationCap, Calendar as CalendarIcon, User, Plus, Bookmark } from 'lucide-react-native';
 import { Session } from '@supabase/supabase-js'; 
 import { supabase } from './supabase'; 
@@ -8,12 +8,19 @@ import { supabase } from './supabase';
 import HomeScreen from './screens/HomeScreen';
 import CalendarScreen from './screens/CalendarScreen';
 import MyPageScreen from './screens/MyPageScreen';
-import AuthScreen from './screens/AuthScreen'; // ✅ 방금 만든 파일 연결!
+import AuthScreen from './screens/AuthScreen'; 
 import ScrapScreen from './screens/ScrapScreen';
 import AddScheduleModal from './modals/AddScheduleModal';
 import Header from './components/Header';
 
 type TabType = 'home' | 'calendar' | 'scrap' | 'mypage';
+
+// 유저 정보 타입 정의
+export interface UserInfo {
+  name: string;
+  major: string;
+  grade: number;
+}
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null); // 로그인 상태
@@ -22,24 +29,47 @@ export default function App() {
   const [userTags, setUserTags] = useState<string[]>(['장학금', '개발']);
   const [searchKeyword, setSearchKeyword] = useState<string>('');
 
+  // 유저 정보를 담을 상태 추가
+  const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', major: '', grade: 0 });
+
   useEffect(() => {
     // 1. 앱 켜자마자 로그인 상태 확인
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (session) extractUserInfo(session); // 세션이 있으면 정보 추출
     });
 
     // 2. 로그인/로그아웃 실시간 감지
-    supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session) {
+        extractUserInfo(session); // 로그인 시 정보 추출
+      } else {
+        setUserInfo({ name: '', major: '', grade: 0 }); // 로그아웃 시 초기화
+      }
     });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  // 🚨 [핵심] 로그인이 안 되어 있으면 'AuthScreen'을 보여줘라!
+  // 세션에서 유저 정보(이름, 학과) 추출하는 함수
+  const extractUserInfo = (session: Session) => {
+    if (session?.user?.user_metadata) {
+      const { full_name, major } = session.user.user_metadata;
+      setUserInfo({
+        name: full_name || '학우', 
+        major: major || '미설정',
+        grade: 3 // 학년은 입력받지 않았으므로 기본값 설정
+      });
+    }
+  };
+
+  // 로그인이 안 되어 있으면 'AuthScreen'을 보여줌
   if (!session) {
     return <AuthScreen />;
   }
 
-  // --- 로그인 성공 시 아래 화면(메인 앱)이 보입니다 ---
+  // --- 로그인 성공 시 메인 앱 화면 ---
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
@@ -51,10 +81,22 @@ export default function App() {
 
       {/* 메인 콘텐츠 영역 */}
       <View style={styles.content}>
-        {activeTab === 'home' && <HomeScreen userTags={userTags} searchKeyword={searchKeyword} />}
+        {activeTab === 'home' && (
+          <HomeScreen 
+            userTags={userTags} 
+            searchKeyword={searchKeyword} 
+            userInfo={userInfo} //  홈 화면에 정보 전달
+          />
+        )}
         {activeTab === 'calendar' && <CalendarScreen />}
-        {activeTab === 'scrap' && <ScrapScreen />} {/* ✅ 보관함 화면 연결 */}
-        {activeTab === 'mypage' && <MyPageScreen userTags={userTags} setUserTags={setUserTags} />}
+        {activeTab === 'scrap' && <ScrapScreen />}
+        {activeTab === 'mypage' && (
+          <MyPageScreen 
+            userTags={userTags} 
+            setUserTags={setUserTags} 
+            userInfo={userInfo} //  마이페이지에 정보 전달
+          />
+        )}
       </View>
 
       {/* 하단 탭바 (5분할) */}
