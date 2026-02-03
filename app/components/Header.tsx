@@ -1,39 +1,33 @@
 import React from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, StatusBar } from 'react-native';
-import { Bell, Search } from 'lucide-react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import { Search, Bell } from 'lucide-react-native';
 
-//  Props 타입 정의 (인터페이스)
-// keyword는 문자열, setKeyword는 상태를 바꾸는 함수라고 명시합니다.
 interface HeaderProps {
   keyword: string;
-  setKeyword: React.Dispatch<React.SetStateAction<string>>;
+  setKeyword: (text: string) => void;
+  onOpenActivity: () => void;
 }
 
-//  타입 적용 (: HeaderProps)
-export default function Header({ keyword, setKeyword }: HeaderProps) {
+export default function Header({ keyword, setKeyword, onOpenActivity }: HeaderProps) {
   return (
-    <View style={styles.headerContainer}>
-      {/* 로고 및 알림 아이콘 영역 */}
+    <View style={styles.container}>
       <View style={styles.topRow}>
         <View>
-          <Text style={styles.brandSub}>KYONGGI UNIV.</Text>
-          <Text style={styles.brandLogo}>
-            CatchUp<Text style={styles.logoDot}>.</Text>
-          </Text>
+            <Text style={styles.title}>CatchUp<Text style={styles.dot}>.</Text></Text>
+            <Text style={styles.subtitle}>경기대 주요 공지를 한눈에!</Text>
         </View>
-        <TouchableOpacity style={styles.iconBtn}>
+        
+        <TouchableOpacity style={styles.bellBtn} onPress={onOpenActivity}>
           <Bell size={24} color="#1e293b" />
-          {/* 알림 배지 (필요 시) */}
           <View style={styles.badge} />
         </TouchableOpacity>
       </View>
 
-      {/* 검색바 영역 */}
       <View style={styles.searchContainer}>
-        <Search size={18} color="#94a3b8" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="궁금한 공지를 검색해보세요"
+        <Search color="#94a3b8" size={20} />
+        <TextInput 
+          style={styles.input}
+          placeholder="궁금한 공지 키워드 검색..."
           placeholderTextColor="#94a3b8"
           value={keyword}
           onChangeText={setKeyword}
@@ -44,19 +38,11 @@ export default function Header({ keyword, setKeyword }: HeaderProps) {
 }
 
 const styles = StyleSheet.create({
-  headerContainer: {
-    backgroundColor: '#fff',
+  container: {
+    paddingTop: 60, 
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 20 : 60,
     paddingBottom: 20,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    // 하단 그림자 효과
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    backgroundColor: '#fff',
   },
   topRow: {
     flexDirection: 'row',
@@ -64,50 +50,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
-  brandSub: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#cbd5e1',
-    letterSpacing: 1,
-  },
-  brandLogo: {
-    fontSize: 24,
+  title: {
+    fontSize: 28,
     fontWeight: '900',
     color: '#1e293b',
   },
-  logoDot: {
-    color: '#4F46E5', 
+  dot: {
+    color: '#4F46E5',
   },
-  iconBtn: {
-    padding: 4,
-    position: 'relative',
+  subtitle: {
+    color: '#64748b',
+    fontSize: 14,
+    marginTop: 4,
+  },
+  bellBtn: {
+    padding: 8,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    position: 'relative'
   },
   badge: {
     position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 8,
-    height: 8,
-    backgroundColor: '#ef4444',
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: '#fff',
+    top: 8,
+    right: 8,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#ef4444'
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f1f5f9',
-    borderRadius: 15,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
     paddingHorizontal: 15,
-    height: 46,
+    paddingVertical: 12,
+    gap: 10,
   },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
+  input: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     color: '#1e293b',
-    fontWeight: '500',
+    padding: 0, 
   },
 });

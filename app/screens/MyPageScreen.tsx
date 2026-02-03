@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -14,7 +14,6 @@ import {
 import { Settings, Calendar, LogOut, ChevronRight, Plus } from 'lucide-react-native';
 import { supabase } from '../supabase';
 
-// userInfo를 부모(App.tsx)로부터 받아오도록 타입 정의
 interface MyPageScreenProps {
   userTags: string[];
   setUserTags: React.Dispatch<React.SetStateAction<string[]>>;
@@ -27,9 +26,15 @@ interface MyPageScreenProps {
 
 export default function MyPageScreen({ userTags = [], setUserTags, userInfo }: MyPageScreenProps) {
   
-  // 태그 입력 관련 상태
   const [isInputVisible, setIsInputVisible] = useState(false);
   const [newTag, setNewTag] = useState("");
+
+  useEffect(() => {
+    if (userInfo.major && !userTags.includes(userInfo.major)) {
+      // 기존 태그 앞에 학과를 추가하여 가장 먼저 보이게 설정
+      setUserTags(prev => [userInfo.major, ...prev]);
+    }
+  }, [userInfo.major]); 
 
   // 로그아웃 함수
   const handleLogout = () => {
@@ -77,11 +82,9 @@ export default function MyPageScreen({ userTags = [], setUserTags, userInfo }: M
           </View>
           <View style={styles.profileInfo}>
             <View style={styles.nameRow}>
-              {/* 받아온 userInfo 정보 사용 */}
               <Text style={styles.userName}>{userInfo.name}</Text>
               <Text style={styles.userSuffix}>님</Text>
             </View>
-            {/* 학년 정보가 있으면 표시 */}
             <Text style={styles.userSub}>{userInfo.major} {userInfo.grade ? `${userInfo.grade}학년` : ''}</Text>
           </View>
         </View>
@@ -94,18 +97,19 @@ export default function MyPageScreen({ userTags = [], setUserTags, userInfo }: M
           </View>
           
           <View style={styles.tagContainer}>
-            {/* 기존 태그 리스트 (클릭 시 삭제) */}
             {userTags.map((tag, index) => (
               <TouchableOpacity 
                 key={index} 
-                style={styles.tag} 
+                style={[
+                    styles.tag, 
+                    tag === userInfo.major && { backgroundColor: '#E0E7FF', borderColor: '#4F46E5', borderWidth: 1 }
+                ]} 
                 onPress={() => handleRemoveTag(tag)}
               >
                 <Text style={styles.tagText}>#{tag}</Text>
               </TouchableOpacity>
             ))}
 
-            {/* 태그 추가 버튼 or 입력창 */}
             {isInputVisible ? (
               <View style={[styles.tag, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#4F46E5', paddingVertical: 2 }]}>
                 <TextInput 

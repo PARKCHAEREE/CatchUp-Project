@@ -9,7 +9,7 @@ const cleanTitle = (text: string) => {
 };
 
 interface NoticeCardProps {
-  id: number; // 북마크 식별을 위해 ID 필수
+  id: number; // 북마크 식별 ID 
   title: string;
   category?: string;
   source?: string;
@@ -39,8 +39,8 @@ export default function NoticeCard({
       <TouchableOpacity onPress={() => onToggleBookmark && onToggleBookmark(id)}>
         <Star 
           size={24} 
-          color={isBookmarked ? "#FFD700" : "#cbd5e1"} // 찜하면 금색, 아니면 회색
-          fill={isBookmarked ? "#FFD700" : "transparent"} // 찜하면 채우기
+          color={isBookmarked ? "#FFD700" : "#cbd5e1"} 
+          fill={isBookmarked ? "#FFD700" : "transparent"} 
         />
       </TouchableOpacity>
     </View>

@@ -112,7 +112,7 @@ export default function AuthScreen() {
     if (error) {
       Alert.alert("회원가입 실패", error.message);
     } else {
-      // 성공하면 인증번호 입력창 띄움
+      // 성공하면 인증번호 입력창 
       setIsOtpVisible(true);
       Alert.alert("인증번호 발송 📩", "메일함(스팸함)을 확인하여 6자리 인증번호를 입력해주세요.");
     }
