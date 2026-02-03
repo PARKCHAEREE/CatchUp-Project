@@ -186,4 +186,4 @@ def crawl_kyonggi_univ(page_from: int = 1, page_to: int = 5):
     print(f"\n\n완료: {total_count}건")
 
 if __name__ == "__main__":
-    crawl_kyonggi_univ(1, 15)
+    crawl_kyonggi_univ()
