@@ -16,7 +16,7 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    print("❌ 환경 변수 누락")
+    print("환경 변수 누락")
     raise SystemExit(1)
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -100,14 +100,6 @@ def fetch_notice_content(url: str) -> str:
         if res.status_code != 200:
             return f"접속 실패 ({res.status_code})"
 
-    return CATEGORY_MAP.get(normalize_text(raw_category), "일반")
-
-def fetch_notice_content(url: str) -> str:
-    try:
-        res = requests.get(url, headers=HEADERS, timeout=10, verify=False)
-        if res.status_code != 200:
-            return f"접속 실패 ({res.status_code})"
-
         soup = BeautifulSoup(res.text, "html.parser")
         for tag in soup(["script", "style", "noscript", "header", "footer", "nav"]):
             tag.decompose()
@@ -163,7 +155,6 @@ def crawl_kyonggi_univ(page_from: int = 1, page_to: int = 5):
                 raw_category = normalize_text(tds[1].get_text())
                 date_text = normalize_text(tds[-1].get_text())
 
-                # DB 저장 데이터 구성
                 data = {
                     "title": title,
                     "category": get_category(raw_category, title),
@@ -175,15 +166,16 @@ def crawl_kyonggi_univ(page_from: int = 1, page_to: int = 5):
                     
                     # 날짜 관련 필드
                     "posted_at": parse_date_to_iso(date_text), 
-                    "created_at_raw": date_text,              
+                    "created_at_raw": date_text,               
                     
-                    # 원본 카테고리 (데이터 누락 방지)
+                    # 원본 카테고리
                     "raw_category": raw_category,
                     
                     "created_at": datetime.now().isoformat(),
                     "source_type": "WEB",
                 }
 
+                # ignore_duplicates=True 옵션으로 기존 데이터 보호
                 supabase.table("notices").upsert(data, on_conflict="link", ignore_duplicates=True).execute()
                 total_count += 1
                 print(".", end="")
@@ -196,4 +188,4 @@ def crawl_kyonggi_univ(page_from: int = 1, page_to: int = 5):
     print(f"\n\n완료: {total_count}건")
 
 if __name__ == "__main__":
-    crawl_kyonggi_univ(1, 15)
+    crawl_kyonggi_univ()
