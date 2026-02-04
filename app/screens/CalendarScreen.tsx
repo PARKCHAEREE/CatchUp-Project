@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, SafeAreaView, Platform, StatusBar } from 'react-native';
 import { Calendar, LocaleConfig, DateData } from 'react-native-calendars';
 import { supabase } from '../supabase';
 import NoticeCard from '../components/NoticeCard';
 
-// 한국어 설정
 LocaleConfig.locales['kr'] = {
   monthNames: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],
   dayNames: ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'],
@@ -17,7 +16,8 @@ interface Notice {
   title: string;
   deadline: string;
   category?: string;
-  source?: string;
+  source_type?: string; 
+  user_deadline?: string;
 }
 
 interface MarkedDates {
@@ -40,97 +40,73 @@ export default function CalendarScreen() {
     fetchBookmarkedNotices();
   }, []);
 
-  // DB의 'bookmarks' 테이블을 조회해서 찜한 공지 데이터만 가져옵니다.
+  const generateMarkedDates = (notices: Notice[], currentSelectedDay: string) => {
+    const marks: MarkedDates = {};
+    notices.forEach((notice) => {
+      const date = notice.deadline; 
+      marks[date] = { 
+        marked: true, 
+        dotColor: notice.user_deadline ? '#FF4500' : '#FFD700', 
+      };
+    });
+    if (currentSelectedDay) {
+      marks[currentSelectedDay] = {
+        ...marks[currentSelectedDay],
+        selected: true,
+        selectedColor: '#4F46E5'
+      };
+    }
+    return marks;
+  };
+
   const fetchBookmarkedNotices = async () => {
     try {
-      setLoading(true);
-
-      // 1. 현재 로그인된 유저 ID 가져오기
       const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        // 로그인 정보가 없을 경우 처리 (필요시 알림 등)
-        throw new Error("로그인 정보가 없습니다.");
-      }
-
-      // 2. bookmarks 테이블에서 내 ID로 된 것들을 찾고, 
-      // 3. 그 안에 연결된 notices(공지 정보)를 같이 가져옵니다 (Join).
+      if (!user) return;
       const { data, error } = await supabase
         .from('bookmarks')
-        .select(`
-          notice_id,
-          notices (
-            id, title, deadline, category, source
-          )
-        `)
+        .select(`notice_id, custom_deadline, notices (id, title, deadline, category, source_type)`)
         .eq('user_id', user.id); 
 
       if (error) throw error;
-
-      // 4. 데이터 가공 (Supabase가 계층 구조로 주기 때문에 평탄화 작업 필요)
       const myNotices = data
-        .map((item: any) => item.notices) // 공지 알맹이만 꺼냄
-        .filter((n: any) => n && n.deadline); // 삭제된 공지나 마감일 없는 건 제외
+        .map((item: any) => {
+            const notice = item.notices;
+            if (!notice) return null;
+            const finalDeadline = item.custom_deadline || notice.deadline;
+            if (!finalDeadline) return null;
+            return { ...notice, deadline: finalDeadline.split('T')[0], user_deadline: item.custom_deadline };
+        })
+        .filter((n: any) => n !== null) as Notice[];
 
-      // 5. 캘린더 점 찍기
-      const marks: MarkedDates = {};
-      myNotices.forEach((notice: Notice) => {
-        const date = notice.deadline.split('T')[0];
-        marks[date] = { 
-          marked: true, 
-          dotColor: '#FFD700', // 찜한 건 금색 점으로 표시
-        };
-      });
-
-      setMarkedDates(marks);
       setBookmarkedNotices(myNotices);
-
+      setMarkedDates(generateMarkedDates(myNotices, selectedDay));
     } catch (e: any) {
       console.error(e);
-      // 로그인 안 된 상태면 조용히 리턴하거나 에러 표시
-      if (e.message !== "로그인 정보가 없습니다.") {
-        Alert.alert("일정 로드 실패", e.message);
-      }
     } finally {
       setLoading(false);
     }
   };
 
   const onDayPress = (day: DateData) => {
-    setSelectedDay(day.dateString);
-    // 이미 가져온 '찜한 목록' 중에서 해당 날짜인 것만 보여줌
-    const filtered = bookmarkedNotices.filter(n => n.deadline.split('T')[0] === day.dateString);
+    const dateString = day.dateString;
+    setSelectedDay(dateString);
+    const filtered = bookmarkedNotices.filter(n => n.deadline === dateString);
     setSelectedDateNotices(filtered);
+    setMarkedDates(generateMarkedDates(bookmarkedNotices, dateString));
   };
 
-  // 캘린더 화면에서 별표를 다시 누르면 -> 찜 해제(삭제) 기능
   const handleRemoveBookmark = async (noticeId: number) => {
     try {
-      // 현재 유저 ID 확인
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        Alert.alert("오류", "로그인이 필요합니다.");
-        return;
-      }
-
-      // DB에서 삭제
-      const { error } = await supabase
-        .from('bookmarks')
-        .delete()
-        .eq('user_id', user.id) 
-        .eq('notice_id', noticeId);
-
-      if (error) throw error;
-
-      // 화면 즉시 반영 (새로고침 없이 리스트에서 제거)
+      if (!user) return;
+      await supabase.from('bookmarks').delete().eq('user_id', user.id).eq('notice_id', noticeId);
+      
       const updatedList = bookmarkedNotices.filter(n => n.id !== noticeId);
       setBookmarkedNotices(updatedList);
-      
-      // 선택된 날짜 리스트에서도 제거
       setSelectedDateNotices(selectedDateNotices.filter(n => n.id !== noticeId));
-      
-      Alert.alert("알림", "일정이 캘린더에서 제거되었습니다.");
-
+      setMarkedDates(generateMarkedDates(updatedList, selectedDay));
+      Alert.alert("알림", "일정이 삭제되었습니다.");
     } catch (e: any) {
       Alert.alert("삭제 실패", e.message);
     }
@@ -139,31 +115,38 @@ export default function CalendarScreen() {
   if (loading) return <ActivityIndicator style={styles.center} size="large" color="#4F46E5" />;
 
   return (
-    <View style={styles.container}>
-      <Calendar
-        onDayPress={onDayPress}
-        markedDates={{
-          ...markedDates,
-          [selectedDay]: { 
-            ...markedDates[selectedDay], 
-            selected: true, 
-            selectedColor: '#4F46E5' 
-          }
-        }}
-        theme={{
-          todayTextColor: '#4F46E5',
-          arrowColor: '#4F46E5',
-          dotColor: '#FFD700',
-          selectedDayBackgroundColor: '#4F46E5',
-        }}
-      />
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+         <Text style={styles.headerTitle}>캘린더</Text>
+      </View>
+      
+      <View style={styles.calendarWrapper}>
+        <Calendar
+          onDayPress={onDayPress}
+          markedDates={markedDates}
+          theme={{
+            todayTextColor: '#4F46E5',
+            arrowColor: '#4F46E5',
+            dotColor: '#FFD700',
+            selectedDayBackgroundColor: '#4F46E5',
+            textDayHeaderFontSize: 14,
+            textDayFontSize: 14,
+            ...({
+                'stylesheet.calendar.header': {
+                  week: { marginTop: 0, flexDirection: 'row', justifyContent: 'space-between' }
+                }
+            } as any)
+          }}
+          enableSwipeMonths={true}
+        />
+      </View>
 
       <View style={styles.listSection}>
         <Text style={styles.listTitle}>
-          {selectedDay ? `${selectedDay} 나의 일정` : '날짜를 선택해주세요'}
+          {selectedDay ? `${selectedDay} 일정` : '날짜를 선택해주세요'}
         </Text>
         
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
           {selectedDateNotices.length > 0 ? (
             selectedDateNotices.map(item => (
               <NoticeCard 
@@ -171,27 +154,60 @@ export default function CalendarScreen() {
                 id={item.id}
                 title={item.title}
                 category={item.category}
-                source={item.source}
-                isBookmarked={true} // 캘린더에 뜨는 건 무조건 찜한 상태임
-                onToggleBookmark={handleRemoveBookmark} // 누르면 삭제됨
+                source={item.user_deadline ? '📅 마감 설정됨' : (item.source_type === 'IMAGE' ? '등록 공지' : '통합 공지')}
+                isBookmarked={true} 
+                onToggleBookmark={handleRemoveBookmark}
               />
             ))
           ) : (
             <View style={styles.emptyBox}>
-              <Text style={styles.emptyText}>저장된 일정이 없습니다.</Text>
+              <Text style={styles.emptyText}>
+                 {selectedDay ? "등록된 일정이 없습니다." : "달력에서 날짜를 선택하세요."}
+              </Text>
             </View>
           )}
         </ScrollView>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#fff',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  header: { 
+    paddingHorizontal: 20, 
+    paddingBottom: 10, 
+    paddingTop: 20,
+  },
+  headerTitle: { 
+    fontSize: 24, 
+    fontWeight: 'bold', 
+    color: '#1e293b' 
+  },
+  calendarWrapper: {
+    backgroundColor: '#fff',
+    paddingBottom: 20, 
+  },
   center: { flex: 1, justifyContent: 'center' },
-  listSection: { flex: 1, backgroundColor: '#F9FAFB', padding: 20, borderTopLeftRadius: 30, borderTopRightRadius: 30 },
-  listTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 15, color: '#111' },
+  listSection: { 
+    flex: 1, 
+    backgroundColor: '#F9FAFB', 
+    padding: 20, 
+    borderTopLeftRadius: 30, 
+    borderTopRightRadius: 30,
+    marginTop: -20, 
+    paddingTop: 30,
+    elevation: 5, 
+    shadowColor: "#000", 
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+  },
+  listTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, color: '#1e293b' },
   emptyBox: { marginTop: 40, alignItems: 'center' },
-  emptyText: { color: '#9ca3af', fontSize: 14 }
+  emptyText: { color: '#94a3b8', fontSize: 14 }
 });

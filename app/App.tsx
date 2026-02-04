@@ -74,17 +74,11 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
-      {/* 헤더는 홈 탭에서만 보임 */}
-      {activeTab === 'home' && (
-        <Header keyword={searchKeyword} setKeyword={setSearchKeyword} />
-      )}
-
       {/* 메인 콘텐츠 영역 */}
       <View style={styles.content}>
         {activeTab === 'home' && (
           <HomeScreen 
-            userTags={userTags} 
-            searchKeyword={searchKeyword} 
+            userTags={userTags}
             userInfo={userInfo} //  홈 화면에 정보 전달
           />
         )}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -11,10 +11,9 @@ import {
   Platform, 
   StatusBar 
 } from 'react-native';
-import { Settings, Calendar, LogOut, ChevronRight, Plus } from 'lucide-react-native';
+import { Settings, LogOut, Plus } from 'lucide-react-native'; 
 import { supabase } from '../supabase';
 
-// userInfo를 부모(App.tsx)로부터 받아오도록 타입 정의
 interface MyPageScreenProps {
   userTags: string[];
   setUserTags: React.Dispatch<React.SetStateAction<string[]>>;
@@ -27,11 +26,15 @@ interface MyPageScreenProps {
 
 export default function MyPageScreen({ userTags = [], setUserTags, userInfo }: MyPageScreenProps) {
   
-  // 태그 입력 관련 상태
   const [isInputVisible, setIsInputVisible] = useState(false);
   const [newTag, setNewTag] = useState("");
 
-  // 로그아웃 함수
+  useEffect(() => {
+    if (userInfo.major && !userTags.includes(userInfo.major)) {
+      setUserTags(prev => [userInfo.major, ...prev]);
+    }
+  }, [userInfo.major]); 
+
   const handleLogout = () => {
     Alert.alert("로그아웃", "정말 로그아웃 하시겠습니까?", [
       { text: "취소", style: "cancel" },
@@ -43,7 +46,6 @@ export default function MyPageScreen({ userTags = [], setUserTags, userInfo }: M
     ]); 
   };
 
-  //  태그 추가 함수
   const handleAddTag = () => {
     if (newTag.trim()) {
       if (!userTags.includes(newTag.trim())) {
@@ -58,7 +60,6 @@ export default function MyPageScreen({ userTags = [], setUserTags, userInfo }: M
     }
   };
 
-  // 태그 삭제 함수 (수정 기능)
   const handleRemoveTag = (tagToRemove: string) => {
     Alert.alert("태그 삭제", `'${tagToRemove}' 태그를 삭제하시겠습니까?`, [
       { text: "취소", style: "cancel" },
@@ -70,23 +71,19 @@ export default function MyPageScreen({ userTags = [], setUserTags, userInfo }: M
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         
-        {/* 프로필 카드 */}
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
             <Text style={styles.avatarEmoji}>👨‍🎓</Text>
           </View>
           <View style={styles.profileInfo}>
             <View style={styles.nameRow}>
-              {/* 받아온 userInfo 정보 사용 */}
               <Text style={styles.userName}>{userInfo.name}</Text>
               <Text style={styles.userSuffix}>님</Text>
             </View>
-            {/* 학년 정보가 있으면 표시 */}
             <Text style={styles.userSub}>{userInfo.major} {userInfo.grade ? `${userInfo.grade}학년` : ''}</Text>
           </View>
         </View>
 
-        {/* 맞춤 설정 (태그 추가/삭제) */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <Settings size={18} color="#1e293b" />
@@ -94,18 +91,19 @@ export default function MyPageScreen({ userTags = [], setUserTags, userInfo }: M
           </View>
           
           <View style={styles.tagContainer}>
-            {/* 기존 태그 리스트 (클릭 시 삭제) */}
             {userTags.map((tag, index) => (
               <TouchableOpacity 
                 key={index} 
-                style={styles.tag} 
+                style={[
+                    styles.tag, 
+                    tag === userInfo.major && { backgroundColor: '#E0E7FF', borderColor: '#4F46E5', borderWidth: 1 }
+                ]} 
                 onPress={() => handleRemoveTag(tag)}
               >
                 <Text style={styles.tagText}>#{tag}</Text>
               </TouchableOpacity>
             ))}
 
-            {/* 태그 추가 버튼 or 입력창 */}
             {isInputVisible ? (
               <View style={[styles.tag, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#4F46E5', paddingVertical: 2 }]}>
                 <TextInput 
@@ -129,18 +127,6 @@ export default function MyPageScreen({ userTags = [], setUserTags, userInfo }: M
           </View>
         </View>
 
-        {/* 메뉴 리스트 */}
-        <TouchableOpacity style={styles.menuItem}>
-          <View style={styles.menuLeft}>
-            <View style={[styles.menuIconBox, { backgroundColor: '#EEF2FF' }]}>
-              <Calendar size={20} color="#4F46E5" />
-            </View>
-            <Text style={styles.menuText}>캘린더 연동</Text>
-          </View>
-          <ChevronRight size={18} color="#cbd5e1" />
-        </TouchableOpacity>
-
-        {/* 로그아웃 버튼 */}
         <TouchableOpacity style={[styles.menuItem, styles.logoutItem]} onPress={handleLogout}>
           <View style={styles.menuLeft}>
             <LogOut size={20} color="#ef4444" />

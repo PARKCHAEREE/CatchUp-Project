@@ -2,19 +2,18 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MessageCircle, Star } from 'lucide-react-native';
 
-// 정규식: 제목의 [대괄호] 제거 함수
 const cleanTitle = (text: string) => {
   if (!text) return "";
   return text.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').trim();
 };
 
 interface NoticeCardProps {
-  id: number; // 북마크 식별을 위해 ID 필수
+  id: number; 
   title: string;
   category?: string;
   source?: string;
-  isBookmarked?: boolean; // 북마크 여부 (채워진 별/빈 별)
-  onToggleBookmark?: (id: number) => void; // 별표 눌렀을 때 실행할 함수
+  isBookmarked?: boolean; 
+  onToggleBookmark?: (id: number) => void; 
 }
 
 export default function NoticeCard({ 
@@ -35,12 +34,11 @@ export default function NoticeCard({
         </Text>
       </View>
 
-      {/* 별표 버튼 기능 구현 */}
       <TouchableOpacity onPress={() => onToggleBookmark && onToggleBookmark(id)}>
         <Star 
           size={24} 
-          color={isBookmarked ? "#FFD700" : "#cbd5e1"} // 찜하면 금색, 아니면 회색
-          fill={isBookmarked ? "#FFD700" : "transparent"} // 찜하면 채우기
+          color={isBookmarked ? "#FFD700" : "#cbd5e1"} 
+          fill={isBookmarked ? "#FFD700" : "transparent"} 
         />
       </TouchableOpacity>
     </View>
