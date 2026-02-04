@@ -3,10 +3,11 @@ import {
   ScrollView, View, Text, StyleSheet, ActivityIndicator, 
   TouchableOpacity, Alert, Modal, Linking, Platform, RefreshControl 
 } from 'react-native';
-import { X, ExternalLink, Star, Calendar as CalendarIcon, Bell, Clock } from 'lucide-react-native'; 
+import { X, ExternalLink, Star, Calendar as CalendarIcon, Bell, Clock, CheckCircle } from 'lucide-react-native'; 
 import { supabase } from '../supabase'; 
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Notifications from 'expo-notifications'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import Header from '../components/Header'; 
 import MajorPickCard from '../components/MajorPickCard';
@@ -57,11 +58,25 @@ export default function HomeScreen({ userTags = [], userInfo }: HomeScreenProps)
   const [tempDate, setTempDate] = useState(new Date());
   const [targetNoticeId, setTargetNoticeId] = useState<number | null>(null);
 
+  const [notificationHistory, setNotificationHistory] = useState<{title: string, date: string, body: string}[]>([]);
+
   useEffect(() => {
     fetchNotices();
     fetchBookmarks(); 
     registerForPushNotificationsAsync();
+    loadNotificationHistory(); 
   }, []);
+
+  const loadNotificationHistory = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('notificationHistory');
+      if (saved) {
+        setNotificationHistory(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.log(e);
+    }
+  };
 
   const registerForPushNotificationsAsync = async () => {
     try {
@@ -159,10 +174,12 @@ export default function HomeScreen({ userTags = [], userInfo }: HomeScreenProps)
     }
   };
 
-  const scheduleDDayNotification = async (noticeTitle: string, deadline: Date) => {
+ const scheduleDDayNotification = async (noticeTitle: string, deadline: Date) => {
     try {
       const now = new Date();
       let scheduledCount = 0;
+      const newLogs: {title: string, date: string, body: string}[] = [];
+
       for (let i = 3; i >= 0; i--) {
         const triggerDate = new Date(deadline);
         triggerDate.setDate(triggerDate.getDate() - i); 
@@ -178,13 +195,38 @@ export default function HomeScreen({ userTags = [], userInfo }: HomeScreenProps)
               body: `'${noticeTitle}' 마감이 ${i}일 남았습니다.`,
               sound: true,
             },
-            trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: diffInSeconds, repeats: false }, 
+            trigger: { 
+              type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, 
+              seconds: diffInSeconds, 
+              repeats: false 
+            }, 
           });
+          
+          const month = String(triggerDate.getMonth() + 1).padStart(2, '0');
+          const day = String(triggerDate.getDate()).padStart(2, '0');
+          const formattedDate = `${month}월 ${day}일 09:00`;
+
+          newLogs.push({
+            title: `예약됨: ${dDayLabel} 알림`,
+            date: formattedDate,
+            body: noticeTitle
+          });
+
           scheduledCount++;
         }
       }
+
+      if (newLogs.length > 0) {
+        setNotificationHistory(prev => {
+          const updated = [...newLogs, ...prev];
+          AsyncStorage.setItem('notificationHistory', JSON.stringify(updated));
+          return updated;
+        });
+      }
+
       return scheduledCount > 0;
     } catch (e) {
+      console.log("알림 예약 중 오류:", e);
       return false;
     }
   };
@@ -273,7 +315,7 @@ export default function HomeScreen({ userTags = [], userInfo }: HomeScreenProps)
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>✨ {userInfo.name}님({userInfo.major}) 추천</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardGap}>
-               
+                
                 {majorPicks.length > 0 ? (
                   majorPicks.map(item => (
                     <TouchableOpacity key={item.id} onPress={() => { setSelectedNotice(item); setIsDetailVisible(true); }}>
@@ -308,12 +350,11 @@ export default function HomeScreen({ userTags = [], userInfo }: HomeScreenProps)
         </View>
       </ScrollView>
 
-      {/* 알림 센터 모달 */}
       <Modal visible={isActivityVisible} animationType="fade" transparent>
         <View style={styles.modalOverlay}>
-           <View style={[styles.modalContent, { height: '50%' }]}> 
+           <View style={[styles.modalContent, { height: '55%' }]}> 
               <View style={styles.modalHeader}>
-                 <Text style={{fontSize: 20, fontWeight: 'bold', color: '#1e293b'}}>🔔 알림 센터</Text>
+                 <Text style={{fontSize: 20, fontWeight: 'bold', color: '#1e293b'}}>🔔 알림 </Text>
                  <TouchableOpacity onPress={() => setIsActivityVisible(false)}>
                     <X color="#999" size={24} />
                  </TouchableOpacity>
@@ -332,11 +373,25 @@ export default function HomeScreen({ userTags = [], userInfo }: HomeScreenProps)
                         </View>
                     )}
                  </View>
+                 
                  <View style={styles.settingSection}>
-                    <Text style={styles.settingHeader}>최근 알림 기록</Text>
-                     <Text style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', marginTop: 10 }}>
-                        최근 발송된 알림 내역이 없습니다.
-                     </Text>
+                    <Text style={styles.settingHeader}>최근 알림 예약 기록</Text>
+                      {notificationHistory.length > 0 ? (
+                        notificationHistory.map((log, index) => (
+                           <View key={index} style={[styles.activityItem, { borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingVertical: 12 }]}>
+                              <CheckCircle size={18} color="#10B981" style={{marginTop: 2}} />
+                              <View style={{flex: 1}}>
+                                 <Text style={{fontSize: 14, color: '#334155', fontWeight: '500'}}>{log.title}</Text>
+                                 <Text style={{fontSize: 12, color: '#64748b', marginTop: 2}}>{log.body}</Text>
+                                 <Text style={{fontSize: 11, color: '#94a3b8', marginTop: 4}}>발송 예정: {log.date}</Text>
+                              </View>
+                           </View>
+                        ))
+                      ) : (
+                        <Text style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', marginTop: 10 }}>
+                           최근 예약된 알림 내역이 없습니다.
+                        </Text>
+                      )}
                  </View>
               </ScrollView>
            </View>
@@ -370,12 +425,25 @@ export default function HomeScreen({ userTags = [], userInfo }: HomeScreenProps)
                   {bookmarkedIds.includes(selectedNotice?.id) ? "저장됨" : "일정 저장"}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#4F46E5', flex: 1 }]} onPress={() => {
+              
+              <TouchableOpacity 
+                disabled={!selectedNotice?.link}
+                style={[
+                  styles.actionBtn, 
+                  { 
+                    backgroundColor: selectedNotice?.link ? '#4F46E5' : '#E2E8F0',
+                    flex: 1 
+                  }
+                ]} 
+                onPress={() => {
                   const url = selectedNotice?.link;
                   if(url) Linking.openURL(url.startsWith('http') ? url : `https://www.kyonggi.ac.kr${url}`);
-              }}>
-                <Text style={[styles.actionBtnText, { color: '#fff' }]}>원문 보러가기</Text>
-                <ExternalLink size={16} color="#fff" />
+                }}
+              >
+                <Text style={[styles.actionBtnText, { color: selectedNotice?.link ? '#fff' : '#94A3B8' }]}>
+                  {selectedNotice?.link ? "원문 보러가기" : "원문 없음"}
+                </Text>
+                <ExternalLink size={16} color={selectedNotice?.link ? "#fff" : "#94A3B8"} />
               </TouchableOpacity>
             </View>
           </View>
@@ -433,6 +501,6 @@ const styles = StyleSheet.create({
   blueBtnText: { color: '#fff', fontWeight: 'bold' },
   settingSection: { marginBottom: 30 },
   settingHeader: { fontSize: 14, fontWeight: 'bold', color: '#94a3b8', marginBottom: 10 },
-  activityItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 10 },
+  activityItem: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 12, gap: 10 },
   activityText: { flex: 1, fontSize: 14, color: '#334155' },
 });

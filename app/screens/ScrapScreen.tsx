@@ -12,8 +12,6 @@ export default function ScrapScreen() {
   const [scraps, setScraps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  // UI 상태 (모달, 날짜선택기)
   const [selectedNotice, setSelectedNotice] = useState<any>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -23,7 +21,6 @@ export default function ScrapScreen() {
     fetchScraps();
   }, []);
 
-  // 보관함 데이터 불러오기
   const fetchScraps = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -41,7 +38,6 @@ export default function ScrapScreen() {
 
       if (error) throw error;
 
-      // 데이터 포맷팅 (null 값 필터링 포함)
       const formattedData = data.map((item: any) => ({
         ...item.notices,
         bookmark_id: item.notice_id,
@@ -57,7 +53,6 @@ export default function ScrapScreen() {
     }
   };
 
-  // 보관함 삭제
   const handleRemove = async (noticeId: number) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -71,7 +66,6 @@ export default function ScrapScreen() {
 
       if (error) throw error;
       
-      // UI 즉시 반영
       setScraps(prev => prev.filter(item => item.id !== noticeId));
       if (selectedNotice?.id === noticeId) setIsModalVisible(false);
       
@@ -80,9 +74,8 @@ export default function ScrapScreen() {
     }
   };
 
-  // 마감일 수정
   const handleDateChange = async (event: any, date?: Date) => {
-    if (Platform.OS === 'android') setShowDatePicker(false); // 안드로이드는 선택 후 닫힘 처리 필요
+    if (Platform.OS === 'android') setShowDatePicker(false); 
     
     if (date && selectedNotice) {
         setTempDate(date);
@@ -98,7 +91,6 @@ export default function ScrapScreen() {
                 .eq('user_id', user.id)
                 .eq('notice_id', selectedNotice.id);
 
-            // 리스트 및 모달 데이터 즉시 업데이트
             setScraps(prev => prev.map(item => 
                 item.id === selectedNotice.id ? { ...item, user_deadline: newDeadline } : item
             ));
@@ -116,7 +108,7 @@ export default function ScrapScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>📂 보관함</Text>
+        <Text style={styles.headerTitle}>보관함</Text>
         <Text style={styles.headerSub}>내가 찜한 공지 {scraps.length}개</Text>
       </View>
 
@@ -136,7 +128,7 @@ export default function ScrapScreen() {
                 id={item.id}
                 title={item.title}
                 category={item.category}
-                source={item.user_deadline ? `📅 마감: ${item.user_deadline}` : (item.source_type === 'IMAGE' ? '📷 내 사진' : '🏫 학교')}
+                source={item.user_deadline ? `📅 마감: ${item.user_deadline}` : (item.source_type === 'IMAGE' ? '일정 추가' : '통합 공지사항')}
                 isBookmarked={true}
                 onToggleBookmark={() => handleRemove(item.id)}
               />
@@ -145,7 +137,6 @@ export default function ScrapScreen() {
         )}
       </ScrollView>
 
-      {/* 상세 보기 모달 */}
       <Modal visible={isModalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -166,7 +157,6 @@ export default function ScrapScreen() {
             </View>
 
             <View style={styles.modalBtnRow}>
-              {/* 날짜 수정 버튼 */}
               <TouchableOpacity 
                   style={[styles.actionBtn, { backgroundColor: '#EEF2FF' }]} 
                   onPress={() => setShowDatePicker(true)}
@@ -177,7 +167,6 @@ export default function ScrapScreen() {
                   </Text>
               </TouchableOpacity>
 
-              {/* 원문 이동 버튼 (이미지/텍스트 일정 아닐 때만) */}
               {selectedNotice?.source_type !== 'IMAGE' && selectedNotice?.source_type !== 'TEXT' ? (
                    <TouchableOpacity 
                       style={[styles.actionBtn, { backgroundColor: '#4F46E5', flex: 1 }]} 
@@ -201,7 +190,6 @@ export default function ScrapScreen() {
         </View>
       </Modal>
 
-      {/* 날짜 선택기 */}
       {showDatePicker && (
           <DateTimePicker
               value={tempDate}

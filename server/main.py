@@ -107,12 +107,11 @@ def call_gemini_text(prompt: str) -> str:
 
 
 # ======================
-# API 1: 이미지 분석 (기존 기능 + 마감일 설정 추가)
+# API 1: 이미지 분석 
 # ======================
 @app.post("/api/case-b")
 async def case_b(
     image: UploadFile = File(...),
-    # [추가] 사용자가 직접 설정한 마감일 받기 (선택사항)
     user_deadline: Optional[str] = Form(None) 
 ):
     if image.content_type not in ["image/jpeg", "image/png", "image/jpg"]:
@@ -142,14 +141,13 @@ async def case_b(
 
             validate_result(parsed)
 
-            # [추가] 사용자가 입력한 마감일이 있으면 그걸 우선 사용!
             final_deadline = user_deadline if user_deadline else parsed["deadline"]
 
             insert_data = {
                 "title": parsed["title"],
                 "summary": parsed["summary"],
                 "category": parsed["category"],
-                "deadline": final_deadline, # [수정] 최종 결정된 마감일 사용
+                "deadline": final_deadline, 
                 
                 "content": f"이미지 업로드 일정_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}",
                 "source_type": "IMAGE",
@@ -188,7 +186,7 @@ async def case_b(
 
 
 # ======================
-# API 2: 텍스트 분석 (완전 신규 추가)
+# API 2: 텍스트 분석 
 # ======================
 @app.post("/api/analyze-text")
 async def analyze_text(payload: TextPayload):
@@ -220,7 +218,6 @@ async def analyze_text(payload: TextPayload):
             parsed = json.loads(cleaned)
             validate_result(parsed)
 
-            # 사용자가 입력한 마감일 우선 적용
             final_deadline = user_deadline if user_deadline else parsed["deadline"]
 
             insert_data = {
@@ -228,8 +225,8 @@ async def analyze_text(payload: TextPayload):
                 "summary": parsed["summary"],
                 "category": parsed["category"],
                 "deadline": final_deadline,
-                "content": text_content, # [중요] 텍스트 원본 저장
-                "source_type": "TEXT",   # [중요] 타입은 TEXT
+                "content": text_content,
+                "source_type": "TEXT",   
                 "link": None,
                 "status": "published",
                 "posted_at": datetime.now().isoformat(),

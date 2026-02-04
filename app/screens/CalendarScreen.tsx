@@ -176,13 +176,11 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     backgroundColor: '#fff',
-    // ✅ [수정됨] 안드로이드 상태바 높이만큼 패딩 추가 (잘림 방지)
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   header: { 
     paddingHorizontal: 20, 
     paddingBottom: 10, 
-    // ✅ [수정됨] 헤더 위쪽에 여유 공간 추가
     paddingTop: 20,
   },
   headerTitle: { 

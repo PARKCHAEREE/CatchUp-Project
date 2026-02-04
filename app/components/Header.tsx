@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Platform, StatusBar } from 'react-native';
 import { Search, Bell } from 'lucide-react-native';
 
 interface HeaderProps {
@@ -12,22 +12,21 @@ export default function Header({ keyword, setKeyword, onOpenActivity }: HeaderPr
   return (
     <View style={styles.container}>
       <View style={styles.topRow}>
-        <View>
+        <View style={styles.logoContainer}>
+            <Text style={styles.univName}>KYONGGI UNIV.</Text>
             <Text style={styles.title}>CatchUp<Text style={styles.dot}>.</Text></Text>
-            <Text style={styles.subtitle}>경기대 주요 공지를 한눈에!</Text>
         </View>
         
         <TouchableOpacity style={styles.bellBtn} onPress={onOpenActivity}>
           <Bell size={24} color="#1e293b" />
-          <View style={styles.badge} />
         </TouchableOpacity>
       </View>
 
       <View style={styles.searchContainer}>
-        <Search color="#94a3b8" size={20} />
+        <Search color="#94a3b8" size={18} style={styles.searchIcon} />
         <TextInput 
           style={styles.input}
-          placeholder="궁금한 공지 키워드 검색..."
+          placeholder="궁금한 공지를 입력하세요!" 
           placeholderTextColor="#94a3b8"
           value={keyword}
           onChangeText={setKeyword}
@@ -39,57 +38,63 @@ export default function Header({ keyword, setKeyword, onOpenActivity }: HeaderPr
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 60, 
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 15 : 50, 
+    paddingHorizontal: 24,
+    paddingBottom: 20, 
     backgroundColor: '#fff',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    // 그림자 설정
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    zIndex: 100,
   },
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 15, 
+  },
+  logoContainer: {
+    flexDirection: 'column',
+  },
+  univName: {
+    fontSize: 11, 
+    fontWeight: '700',
+    color: '#cbd5e1', 
+    letterSpacing: 0.5,
+    marginBottom: 0,
   },
   title: {
-    fontSize: 28,
+    fontSize: 28, 
     fontWeight: '900',
-    color: '#1e293b',
+    color: '#1e293b', 
+    lineHeight: 32,
   },
   dot: {
-    color: '#4F46E5',
-  },
-  subtitle: {
-    color: '#64748b',
-    fontSize: 14,
-    marginTop: 4,
+    color: '#6366f1', 
   },
   bellBtn: {
-    padding: 8,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
-    position: 'relative'
-  },
-  badge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#ef4444'
+    padding: 4,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    gap: 10,
+    backgroundColor: '#F3F6F8', 
+    borderRadius: 25, 
+    paddingHorizontal: 16,
+    paddingVertical: 10, 
+  },
+  searchIcon: {
+    marginRight: 8,
   },
   input: {
     flex: 1,
     fontSize: 15,
+    fontWeight: '500',
     color: '#1e293b',
     padding: 0, 
   },

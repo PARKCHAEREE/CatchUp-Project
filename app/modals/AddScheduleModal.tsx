@@ -15,7 +15,7 @@ interface AddScheduleModalProps {
 
 type SourceType = 'kakao' | 'poster' | 'note';
 
-// 서버 URL (본인 IP 확인 )
+// 서버 URL (본인 IP 확인)
 const SERVER_URL = 'http://192.168.0.103:8000'; 
 
 export default function AddScheduleModal({ visible, onClose }: AddScheduleModalProps) {
@@ -24,7 +24,6 @@ export default function AddScheduleModal({ visible, onClose }: AddScheduleModalP
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
 
-  // 날짜 관련 상태
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -37,13 +36,17 @@ export default function AddScheduleModal({ visible, onClose }: AddScheduleModalP
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
+      allowsEditing: false, 
       quality: 1,
     });
 
     if (!result.canceled) {
       setSelectedImage(result.assets[0].uri);
     }
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
   };
 
   const handleDateChange = (event: any, date?: Date) => {
@@ -53,9 +56,8 @@ export default function AddScheduleModal({ visible, onClose }: AddScheduleModalP
     }
   };
 
-  // 텍스트  이미지 로직 분리
+  // 텍스트/이미지 로직 분리
   const handleAISubmit = async () => {
-    
     if (sourceType === 'kakao') {
         if (!inputText.trim()) return Alert.alert("입력 오류", "공지 내용을 입력해주세요.");
     } else {
@@ -69,7 +71,7 @@ export default function AddScheduleModal({ visible, onClose }: AddScheduleModalP
       const userDeadlineStr = selectedDate ? selectedDate.toISOString().split('T')[0] : null;
 
       if (sourceType === 'kakao') {
-        // 텍스트 분석 요청 (단톡 공지) -> /api/analyze-text
+        // 텍스트 분석 요청
         response = await fetch(`${SERVER_URL}/api/analyze-text`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -78,9 +80,8 @@ export default function AddScheduleModal({ visible, onClose }: AddScheduleModalP
                 user_deadline: userDeadlineStr
             })
         });
-
       } else {
-        // 이미지 분석 요청 (포스터 + 필기) -> /api/case-b
+        // 이미지 분석 요청
         const formData = new FormData();
         const filename = selectedImage?.split('/').pop() || 'upload.jpg';
         const match = /\.(\w+)$/.exec(filename);
@@ -132,7 +133,6 @@ export default function AddScheduleModal({ visible, onClose }: AddScheduleModalP
           style={{ width: '100%' }}
         >
           <View style={styles.container}>
-            {/* 헤더 */}
             <View style={styles.header}>
               <Text style={styles.title}>일정 추가</Text>
               <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
@@ -140,7 +140,6 @@ export default function AddScheduleModal({ visible, onClose }: AddScheduleModalP
               </TouchableOpacity>
             </View>
 
-            {/* 탭 버튼 */}
             <View style={styles.tabContainer}>
               {([
                 { id: 'kakao', label: '💬 공지 텍스트', icon: <MessageCircle size={18}/> },
@@ -164,58 +163,62 @@ export default function AddScheduleModal({ visible, onClose }: AddScheduleModalP
             </View>
 
             <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
-            
-                <View style={styles.inputSection}>
-                
+              <View style={styles.inputSection}>
                 {sourceType === 'kakao' ? (
-                    <TextInput
-                        style={styles.textArea}
-                        placeholder="카톡 공지 내용을 붙여넣으세요..."
-                        multiline
-                        value={inputText}
-                        onChangeText={setInputText}
-                    />
+                  <TextInput
+                    style={styles.textArea}
+                    placeholder="카톡 공지 내용을 붙여넣으세요..."
+                    multiline
+                    value={inputText}
+                    onChangeText={setInputText}
+                  />
                 ) : (
-                    <TouchableOpacity style={styles.imageUploadBtn} onPress={pickImage}>
+                  <View style={styles.imageContainer}>
                     {selectedImage ? (
-                        <Image source={{ uri: selectedImage }} style={{ width: '100%', height: '100%', borderRadius: 16 }} resizeMode="cover" />
+                      <View style={styles.previewWrapper}>
+                        <Image source={{ uri: selectedImage }} style={styles.previewImage} resizeMode="cover" />
+
+                        <TouchableOpacity style={styles.removeImageBtn} onPress={removeImage}>
+                          <View style={styles.removeIconWrapper}>
+                            <X size={16} color="#fff" />
+                          </View>
+                        </TouchableOpacity>
+                      </View>
                     ) : (
-                        <>
+                      <TouchableOpacity style={styles.imageUploadBtn} onPress={pickImage}>
                         <Camera size={40} color="#4F46E5" />
                         <Text style={styles.imageUploadText}>
-                            {sourceType === 'poster' ? "포스터/공문 사진 업로드" : "필기한 노트 사진 업로드"}
+                          {sourceType === 'poster' ? "포스터/공문 사진 업로드" : "필기한 노트 사진 업로드"}
                         </Text> 
                         <Text style={styles.imageSubText}>AI가 이미지를 분석하여 등록합니다</Text>
-                        </>
+                      </TouchableOpacity>
                     )}
-                    </TouchableOpacity>
+                  </View>
                 )}
-                </View>
+              </View>
 
-                {/* 마감일 선택 버튼 */}
-                <TouchableOpacity 
-                    style={styles.dateBtn} 
-                    onPress={() => setShowDatePicker(true)}
-                >
-                    <CalendarIcon size={20} color="#4F46E5" />
-                    <Text style={styles.dateBtnText}>
-                        {selectedDate 
-                        ? `마감일: ${selectedDate.getFullYear()}-${selectedDate.getMonth()+1}-${selectedDate.getDate()}` 
-                        : "마감일 설정"}
-                    </Text>
-                </TouchableOpacity>
+              <TouchableOpacity 
+                  style={styles.dateBtn} 
+                  onPress={() => setShowDatePicker(true)}
+              >
+                  <CalendarIcon size={20} color="#4F46E5" />
+                  <Text style={styles.dateBtnText}>
+                      {selectedDate 
+                      ? `마감일: ${selectedDate.getFullYear()}-${selectedDate.getMonth()+1}-${selectedDate.getDate()}` 
+                      : "마감일 설정"}
+                  </Text>
+              </TouchableOpacity>
 
-                {showDatePicker && (
-                    <DateTimePicker
-                    value={selectedDate || new Date()}
-                    mode="date"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={handleDateChange}
-                    />
-                )}
+              {showDatePicker && (
+                  <DateTimePicker
+                  value={selectedDate || new Date()}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={handleDateChange}
+                  />
+              )}
             </ScrollView>
 
-            {/* 등록 버튼 */}
             <TouchableOpacity 
               style={[styles.submitBtn, isAnalyzing && styles.disabledBtn]} 
               onPress={handleAISubmit}
@@ -240,21 +243,40 @@ export default function AddScheduleModal({ visible, onClose }: AddScheduleModalP
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   container: { backgroundColor: '#fff', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 40 },
+  
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   title: { fontSize: 20, fontWeight: 'bold', color: '#1e293b' },
   closeBtn: { padding: 4 },
+
   tabContainer: { flexDirection: 'row', backgroundColor: '#f1f5f9', borderRadius: 16, padding: 6, marginBottom: 24 },
   tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 12 },
   activeTab: { backgroundColor: '#fff', elevation: 2, shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.1 },
   tabText: { fontSize: 13, fontWeight: 'bold', color: '#94a3b8' },
   activeTabText: { color: '#4F46E5' },
-  
+
   inputSection: { marginBottom: 16 }, 
   textArea: { backgroundColor: '#f8fafc', borderRadius: 16, padding: 20, height: 180, fontSize: 15, textAlignVertical: 'top', color: '#334155' },
+  
+  imageContainer: { width: '100%', height: 180 },
+  previewWrapper: { width: '100%', height: '100%', position: 'relative' },
+  previewImage: { width: '100%', height: '100%', borderRadius: 16 },
+  
+  removeImageBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 10,
+  },
+  removeIconWrapper: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    padding: 6,
+  },
+
   imageUploadBtn: { height: 180, backgroundColor: '#f5f7ff', borderRadius: 20, borderWidth: 2, borderColor: '#e0e7ff', borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center' },
   imageUploadText: { marginTop: 12, fontSize: 16, fontWeight: 'bold', color: '#4F46E5' },
   imageSubText: { marginTop: 4, fontSize: 12, color: '#94a3b8' },
-  
+
   dateBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EEF2FF', padding: 16, borderRadius: 12, justifyContent: 'center', gap: 8, marginBottom: 24 },
   dateBtnText: { color: '#4F46E5', fontWeight: 'bold', fontSize: 15 },
 
