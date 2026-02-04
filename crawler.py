@@ -81,24 +81,14 @@ def get_clean_link(raw_link: str) -> str:
     return raw_link
 
 def get_category(raw_category: str, title: str) -> str:
-    clean_title = normalize_text(title)
-    clean_raw = normalize_text(raw_category)
-    text = f"{clean_title} {clean_raw}"
-    
-    if re.search(r"장학금|장학|국가근로|학자금|대출|생활비", text): return "장학"
+    text = f"{normalize_text(title)} {normalize_text(raw_category)}"
+
+    if re.search(r"장학금|장학|국가|근로|학자금|대출|생활비", text): return "장학"
     if re.search(r"등록금|분납|납부|환불|고지서|등록\b", text): return "등록"
     if re.search(r"취업|채용|인턴|현장실습|진로|멘토링|추천채용|사업단", text): return "취업"
     if re.search(r"기숙사|생활관|드림타워|입사|퇴사|관생|셔틀|버스|주차|식당|메뉴|학식|보건|진료|분실물|예비군", text): return "생활"
     if re.search(r"행사|특강|모집|대회|공모전|봉사|서포터즈|프로그램|설명회|축제", text): return "행사"
-    if re.search(r"수강|성적|졸업|휴학|복학|전과|계절학기|학사일정|학위", text): return "학사"
-
-    return CATEGORY_MAP.get(normalize_text(raw_category), "일반")
-
-def fetch_notice_content(url: str) -> str:
-    try:
-        res = requests.get(url, headers=HEADERS, timeout=10, verify=False)
-        if res.status_code != 200:
-            return f"접속 실패 ({res.status_code})"
+    if re.search(r"수강|성적|졸업|휴학|복학|전과|계절학기|학사일정", text): return "학사"
 
     return CATEGORY_MAP.get(normalize_text(raw_category), "일반")
 
@@ -173,18 +163,18 @@ def crawl_kyonggi_univ(page_from: int = 1, page_to: int = 5):
                     "status": "pending",
                     "deadline": None,
                     
-                    # 날짜 관련 필드
-                    "posted_at": parse_date_to_iso(date_text), 
-                    "created_at_raw": date_text,              
+                    # [중요] 날짜 관련 필드
+                    "posted_at": parse_date_to_iso(date_text), # 정렬용 실제 날짜
+                    "created_at_raw": date_text,               # 원본 날짜 (DB 컬럼명에 맞춤)
                     
-                    # 원본 카테고리 (데이터 누락 방지)
+                    # [중요] 원본 카테고리 (데이터 누락 방지)
                     "raw_category": raw_category,
                     
                     "created_at": datetime.now().isoformat(),
                     "source_type": "WEB",
                 }
 
-                supabase.table("notices").upsert(data, on_conflict="link", ignore_duplicates=True).execute()
+                supabase.table("notices").upsert(data, on_conflict="link").execute()
                 total_count += 1
                 print(".", end="")
 
